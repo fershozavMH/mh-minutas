@@ -1,15 +1,24 @@
-import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { getAuth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/current-user";
+import { SignOutButton } from "./sign-out-button";
 
 async function Greeting() {
-  // Primero se leen los encabezados: así la página se arma al pedirla, no en el build.
-  const requestHeaders = await headers();
-  const session = await getAuth().api.getSession({ headers: requestHeaders });
-  if (!session) redirect("/login");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
 
-  return <p>Hola, {session.user.name}.</p>;
+  return (
+    <>
+      <p>Hola, {user.name}.</p>
+      {user.profile === "ADMIN" && (
+        <p>
+          <Link href="/admin">Usuarios</Link>
+        </p>
+      )}
+      <SignOutButton />
+    </>
+  );
 }
 
 export default function Home() {

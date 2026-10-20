@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/current-user";
 import { getDb } from "@/lib/db";
+import { SignOutButton } from "../sign-out-button";
 import { UserForm } from "./user-form";
 
 async function Admin() {
@@ -52,6 +54,9 @@ export default function AdminPage() {
   return (
     <main>
       <h1>Usuarios</h1>
+      <p>
+        <Link href="/">Inicio</Link> <SignOutButton />
+      </p>
       <Suspense fallback={<p>Cargando…</p>}>
         <Admin />
       </Suspense>
