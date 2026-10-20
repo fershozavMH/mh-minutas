@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HelpTip } from "../help-tip";
 
 type Option = { id: string; name: string };
 
@@ -47,7 +48,7 @@ export function UserForm({ levels, directors }: { levels: Option[]; directors: O
       </p>
       <p>
         <label>
-          Perfil{" "}
+          Perfil <HelpTip topic="profile" label="Perfil" />{" "}
           <select value={profile} onChange={(event) => setProfile(event.target.value)}>
             <option value="ASSISTANT">Asistente</option>
             <option value="DIRECTOR">Directivo</option>
@@ -57,7 +58,7 @@ export function UserForm({ levels, directors }: { levels: Option[]; directors: O
       </p>
       <p>
         <label>
-          Nivel máximo{" "}
+          Nivel máximo <HelpTip topic="maxLevel" label="Nivel máximo" />{" "}
           <select name="maxLevelId" required>
             {levels.map((level) => (
               <option key={level.id} value={level.id}>
@@ -70,7 +71,7 @@ export function UserForm({ levels, directors }: { levels: Option[]; directors: O
       {profile === "ASSISTANT" && (
         <p>
           <label>
-            Directivo{" "}
+            Directivo <HelpTip topic="boss" label="Directivo" />{" "}
             <select name="bossId" required>
               {directors.map((director) => (
                 <option key={director.id} value={director.id}>

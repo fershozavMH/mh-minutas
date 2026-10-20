@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import Script from "next/script";
 import { themeInitScript } from "@/lib/theme";
 import { ThemeToggle } from "./theme-toggle";
@@ -18,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Script>
         <header className="topbar">
           <strong>MH Executive OS</strong>
-          <ThemeToggle />
+          <nav>
+            <Link href="/ayuda">Ayuda</Link> <ThemeToggle />
+          </nav>
         </header>
         {children}
       </body>
