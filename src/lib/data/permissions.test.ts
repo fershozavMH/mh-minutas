@@ -1,7 +1,7 @@
 // Prueba de permisos (H-06): recorre la capa de datos con un usuario de cada perfil
 // contra una rama de pruebas de Neon. Se salta si no existe TEST_DATABASE_URL.
 import { config } from "dotenv";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 config({ path: ".env.local" });
 
@@ -74,6 +74,7 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     const userIds = ["d1", "d2", "a1", "a2", "admin"].map((key) => ids[key]).filter(Boolean);
     await db.auditLog.deleteMany({ where: { userId: { in: userIds } } });
     await db.changeLog.deleteMany({ where: { authorId: { in: userIds } } });
+    await db.reviewItem.deleteMany({ where: { meeting: { createdById: { in: userIds } } } });
     await db.source.deleteMany({ where: { uploadedById: { in: userIds } } });
     await db.action.deleteMany({ where: { createdById: { in: userIds } } });
     await db.meeting.deleteMany({ where: { createdById: { in: userIds } } });
@@ -157,5 +158,38 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     expect(await sources.addSource(viewers.a2, ids.m1, { origin: "x", text: "otro" })).toEqual({ ok: false, error: "no_existe" });
     expect(await sources.addSource(viewers.d1, ids.m1, { origin: "x", text: "otro" })).toEqual({ ok: false, error: "sin_permiso" });
     expect(await sources.addSource(viewers.admin, ids.m1, { origin: "x", text: "otro" })).toEqual({ ok: false, error: "sin_permiso" });
+  });
+  it("la IA solo propone: crea pendientes y nunca recibe un nivel sensible", async () => {
+    const { addSource } = await import("./sources");
+    const { requestProposal } = await import("./proposals");
+    const proposal = {
+      summary: "Resumen",
+      decisions: ["D1"],
+      risks: [],
+      nextSteps: ["N1"],
+      actions: [{ title: "A1", ownerName: null, dueDate: null }],
+    };
+    const create = vi.fn().mockResolvedValue({ content: [{ type: "tool_use", name: "registrar_propuesta", input: proposal }] });
+    const client = { messages: { create } } as unknown as import("../ai/propose").AiClient;
+
+    const ok = await addSource(viewers.a2, ids.m3, { origin: "t", text: `${run} para la IA` });
+    const sourceId = ok.ok ? ok.id : "";
+    expect(await requestProposal(viewers.a2, ids.m3, sourceId, { client })).toEqual({ ok: true, count: 4 });
+    const items = await db.reviewItem.findMany({ where: { sourceId } });
+    expect(items.map((i) => i.kind).sort()).toEqual(["ACTION", "DECISION", "NEXT_STEP", "SUMMARY"]);
+    expect(items.every((i) => i.status === "PENDING")).toBe(true);
+    expect(await requestProposal(viewers.a2, ids.m3, sourceId, { client })).toEqual({ ok: false, error: "ya_propuesto" });
+    expect(create).toHaveBeenCalledTimes(1);
+
+    // Nivel sensible: se corta antes de tocar a la IA.
+    const sensitive = await addSource(viewers.a1, ids.m2, { origin: "t", text: `${run} sensible` });
+    const sensitiveId = sensitive.ok ? sensitive.id : "";
+    expect(await requestProposal(viewers.a1, ids.m2, sensitiveId, { client })).toEqual({ ok: false, error: "nivel_sensible" });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(await db.reviewItem.count({ where: { sourceId: sensitiveId } })).toBe(0);
+
+    expect(await requestProposal(viewers.a1, ids.m3, sourceId, { client })).toEqual({ ok: false, error: "no_existe" });
+    expect(await requestProposal(viewers.d2, ids.m3, sourceId, { client })).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await requestProposal(viewers.admin, ids.m3, sourceId, { client })).toEqual({ ok: false, error: "sin_permiso" });
   });
 });

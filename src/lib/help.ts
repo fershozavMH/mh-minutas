@@ -11,6 +11,8 @@ export const help = {
     "Qué tan delicada es la reunión. Elige el nivel más bajo que le corresponda; solo ves los niveles hasta tu máximo. Quienes tengan un nivel máximo menor no la verán.",
   transcript:
     "Pega el texto de la transcripción o sube un archivo .txt, .md, .vtt o .srt. Se guarda solo el texto limpio, no el archivo. Si cargas el mismo texto dos veces en una reunión, se avisa y no se duplica.",
+  proposal:
+    "La IA lee el transcript y propone resumen, decisiones, riesgos, siguientes pasos y acciones. Todo queda pendiente: nada es oficial hasta que una persona lo revise y lo apruebe.",
   sensitive: "Una reunión de nivel sensible nunca se envía a la IA y su ficha se captura a mano.",
 } as const;
 

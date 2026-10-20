@@ -22,3 +22,7 @@
 ## T-10
 - Cargar transcript en una reunión (`/reuniones/[id]`, `POST /api/meetings/[id]/sources`): texto pegado o archivo .txt/.md/.vtt/.srt.
 - Se guarda el texto normalizado y su huella SHA-256; el mismo texto en la misma reunión se rechaza.
+
+## T-12
+- Pedir propuesta a la IA por transcript (`POST /api/meetings/[id]/sources/[sourceId]/propose`): salida estructurada validada con zod, guardada como ReviewItem pendiente.
+- Una reunión de nivel sensible se corta antes de crear el cliente de la IA; nada se envía.
