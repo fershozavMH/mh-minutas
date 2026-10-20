@@ -15,6 +15,8 @@ function createAuth() {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
         // Solo entran cuentas de Google Workspace; Administración da de alta a cada persona.
         hd: "*",
+        // Google siempre pregunta con qué cuenta entrar.
+        prompt: "select_account",
         disableSignUp: true,
       },
     },
