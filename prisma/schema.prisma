@@ -6,3 +6,222 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// Perfiles de uso: las asistentes cargan y aprueban, los directivos leen,
+// Administración gestiona usuarios, niveles y auditoría.
+enum Profile {
+  ASSISTANT
+  DIRECTOR
+  ADMIN
+}
+
+enum ReviewKind {
+  SUMMARY
+  DECISION
+  RISK
+  NEXT_STEP
+  ACTION
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AuditKind {
+  READ
+  CHANGE
+}
+
+// Niveles de visibilidad. Son filas, no valores fijos en el código.
+model Level {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  rank        Int      @unique
+  isSensitive Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  users    User[]
+  meetings Meeting[]
+  actions  Action[]
+}
+
+// Estados de acción configurables.
+model ActionStatus {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  position  Int
+  isClosed  Boolean  @default(false)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  actions Action[]
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  profile       Profile
+  maxLevelId    String
+  // Para una asistente, el directivo al que apoya.
+  bossId        String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  maxLevel Level  @relation(fields: [maxLevelId], references: [id])
+  boss     User?  @relation("AssistantBoss", fields: [bossId], references: [id])
+  assists  User[] @relation("AssistantBoss")
+
+  meetingsCreated Meeting[]
+  sourcesUploaded Source[]
+  reviewsEdited   ReviewItem[] @relation("ReviewEditor")
+  reviewsDecided  ReviewItem[] @relation("ReviewDecider")
+  actionsCreated  Action[]
+  changes         ChangeLog[]
+  audits          AuditLog[]
+
+  @@index([bossId])
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  title       String
+  heldAt      DateTime
+  levelId     String
+  createdById String
+  // Ficha oficial aprobada; las propuestas viven en ReviewItem.
+  officialCard Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  level     Level  @relation(fields: [levelId], references: [id])
+  createdBy User   @relation(fields: [createdById], references: [id])
+
+  sources     Source[]
+  reviewItems ReviewItem[]
+  actions     Action[]
+
+  @@index([levelId])
+  @@index([createdById])
+}
+
+// Se guarda el texto normalizado y su huella, no el archivo original.
+model Source {
+  id             String   @id @default(cuid())
+  meetingId      String
+  origin         String
+  normalizedText String
+  textHash       String
+  uploadedById   String
+  createdAt      DateTime @default(now())
+
+  meeting    Meeting @relation(fields: [meetingId], references: [id])
+  uploadedBy User    @relation(fields: [uploadedById], references: [id])
+
+  reviewItems ReviewItem[]
+
+  @@unique([meetingId, textHash])
+  @@index([uploadedById])
+}
+
+// Lo que propone la IA. Nada es oficial hasta que una persona lo aprueba.
+model ReviewItem {
+  id              String       @id @default(cuid())
+  meetingId       String
+  sourceId        String?
+  kind            ReviewKind
+  aiValue         Json
+  editedValue     Json?
+  editedById      String?
+  editedAt        DateTime?
+  status          ReviewStatus @default(PENDING)
+  rejectionReason String?
+  decidedById     String?
+  decidedAt       DateTime?
+  // Acción oficial creada al aprobar una propuesta de tipo ACTION.
+  actionId        String?      @unique
+  createdAt       DateTime     @default(now())
+
+  meeting   Meeting @relation(fields: [meetingId], references: [id])
+  source    Source? @relation(fields: [sourceId], references: [id])
+  editedBy  User?   @relation("ReviewEditor", fields: [editedById], references: [id])
+  decidedBy User?   @relation("ReviewDecider", fields: [decidedById], references: [id])
+  action    Action? @relation(fields: [actionId], references: [id])
+
+  @@index([meetingId, status])
+  @@index([sourceId])
+}
+
+// Acción oficial. Nunca se borra: se retira o se reemplaza.
+model Action {
+  id            String    @id @default(cuid())
+  title         String
+  ownerName     String?
+  // Fecha de compromiso y fecha en que debe aparecer en la vista principal.
+  dueDate       DateTime?
+  actionDate    DateTime?
+  // Importada sin fecha: se marca para depurarla aparte.
+  undated       Boolean   @default(false)
+  statusId      String
+  levelId       String
+  meetingId     String?
+  createdById   String
+  retiredAt     DateTime?
+  retiredReason String?
+  replacedById  String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  status      ActionStatus @relation(fields: [statusId], references: [id])
+  level       Level        @relation(fields: [levelId], references: [id])
+  meeting     Meeting?     @relation(fields: [meetingId], references: [id])
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  replacedBy  Action?      @relation("ActionReplacement", fields: [replacedById], references: [id])
+  replaces    Action?      @relation("ActionReplacement")
+
+  reviewItem ReviewItem?
+  changes    ChangeLog[]
+
+  @@index([levelId])
+  @@index([statusId])
+  @@index([meetingId])
+  @@index([dueDate])
+}
+
+// Cada cambio guarda autor, fecha y valor anterior.
+model ChangeLog {
+  id        String   @id @default(cuid())
+  actionId  String
+  field     String
+  oldValue  String?
+  newValue  String?
+  authorId  String
+  createdAt DateTime @default(now())
+
+  action Action @relation(fields: [actionId], references: [id])
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@index([actionId, createdAt])
+  @@index([authorId])
+}
+
+// Lecturas y cambios de nivel alto. Sin contenido sensible.
+model AuditLog {
+  id        String    @id @default(cuid())
+  userId    String
+  kind      AuditKind
+  entity    String
+  entityId  String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+}

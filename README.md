@@ -25,3 +25,10 @@ npm run dev
 - Nunca se borran entidades oficiales: se retiran o se reemplazan.
 - La visibilidad por nivel se filtra en el servidor, en una sola capa de datos.
 - Sin secretos en el repositorio.
+
+## Ramas y versiones
+
+- `main`: producción en Vercel. No se hace push directo; solo se fusiona `develop` cuando Fernando autoriza una liberación.
+- `develop`: aquí van todos los commits, uno pequeño por tarea con su ID (por ejemplo `T-02: esquema de datos`).
+- Versiones semánticas con etiquetas sobre `main` y una entrada por versión en `CHANGELOG.md`.
+- Las migraciones de Prisma están versionadas en el repositorio; ninguna migración destructiva se aplica sin autorización.
