@@ -151,40 +151,40 @@ nav {
 
 .help {
   display: inline-block;
-  position: relative;
   vertical-align: middle;
 }
 
-.help summary {
-  list-style: none;
+.help-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--link);
   border-radius: 50%;
-  background: var(--soft);
-  color: var(--link);
-  font-size: 0.8rem;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
   font-weight: 700;
+  line-height: 1;
   cursor: pointer;
 }
 
-.help summary::-webkit-details-marker {
-  display: none;
+.help-btn:hover {
+  background: var(--soft);
 }
 
-.help summary:focus-visible {
+.help-btn:focus-visible {
   outline: 2px solid var(--highlight);
   outline-offset: 2px;
 }
 
-.help [role="note"] {
-  position: absolute;
-  z-index: 10;
-  top: 26px;
-  left: 0;
-  width: 280px;
+.help-note {
+  position: fixed;
+  z-index: 50;
+  box-sizing: border-box;
+  width: min(280px, calc(100vw - 24px));
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -192,7 +192,9 @@ nav {
   color: var(--text);
   font-size: 0.85rem;
   font-weight: 400;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
+  line-height: 1.4;
+  text-align: left;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
 }
 
 .field {
