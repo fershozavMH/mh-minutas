@@ -24,6 +24,22 @@ async function main() {
     });
   }
 
+  // Primera persona administradora, para poder entrar la primera vez.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  if (adminEmail) {
+    const top = await db.level.findFirstOrThrow({ orderBy: { rank: "desc" } });
+    await db.user.upsert({
+      where: { email: adminEmail },
+      update: { profile: "ADMIN", maxLevelId: top.id, active: true },
+      create: {
+        email: adminEmail,
+        name: process.env.SEED_ADMIN_NAME?.trim() || adminEmail,
+        profile: "ADMIN",
+        maxLevelId: top.id,
+      },
+    });
+  }
+
   const [levels, statuses] = await Promise.all([db.level.count(), db.actionStatus.count()]);
   console.log(`Niveles: ${levels}. Estados: ${statuses}.`);
   await db.$disconnect();
