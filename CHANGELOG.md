@@ -18,3 +18,7 @@
 
 ## Entrada de prueba
 - Correo y contraseña solo en local (`ENABLE_TEST_LOGIN=true`), solo para usuarios `prueba.*`; apagado siempre en producción.
+
+## T-10
+- Cargar transcript en una reunión (`/reuniones/[id]`, `POST /api/meetings/[id]/sources`): texto pegado o archivo .txt/.md/.vtt/.srt.
+- Se guarda el texto normalizado y su huella SHA-256; el mismo texto en la misma reunión se rechaza.

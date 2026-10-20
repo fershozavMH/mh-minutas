@@ -203,3 +203,21 @@ nav {
   gap: 8px;
   margin: 12px 0;
 }
+
+.field label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+textarea {
+  width: 100%;
+  max-width: 720px;
+  min-height: 180px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}

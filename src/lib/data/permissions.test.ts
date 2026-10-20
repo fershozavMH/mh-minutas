@@ -74,6 +74,7 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     const userIds = ["d1", "d2", "a1", "a2", "admin"].map((key) => ids[key]).filter(Boolean);
     await db.auditLog.deleteMany({ where: { userId: { in: userIds } } });
     await db.changeLog.deleteMany({ where: { authorId: { in: userIds } } });
+    await db.source.deleteMany({ where: { uploadedById: { in: userIds } } });
     await db.action.deleteMany({ where: { createdById: { in: userIds } } });
     await db.meeting.deleteMany({ where: { createdById: { in: userIds } } });
     await db.user.deleteMany({ where: { id: { in: userIds.filter((id) => id !== ids.d1 && id !== ids.d2) } } });
@@ -138,5 +139,23 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     expect(created.ok).toBe(true);
     expect(await db.auditLog.count({ where: { userId: ids.a2, kind: "CHANGE", entity: "Meeting" } })).toBe(1);
     expect((await lists.listMeetings(viewers.d2)).some((m) => created.ok && m.id === created.id)).toBe(true);
+  });
+  it("solo la asistente dueña carga transcripts, sin duplicados", async () => {
+    const sources = await import("./sources");
+    const text = `${run} línea uno\r\nlínea dos  \r\n`;
+    const first = await sources.addSource(viewers.a1, ids.m1, { origin: "Texto pegado", text });
+    expect(first.ok).toBe(true);
+    const saved = await db.source.findFirst({ where: { meetingId: ids.m1 } });
+    expect(saved?.normalizedText).toBe(`${run} línea uno\nlínea dos`);
+    expect(saved?.textHash).toHaveLength(64);
+
+    expect(await sources.addSource(viewers.a1, ids.m1, { origin: "Archivo: x.txt", text: `${run} línea uno\nlínea dos` })).toEqual({
+      ok: false,
+      error: "duplicado",
+    });
+    expect(await sources.addSource(viewers.a1, ids.m1, { origin: "x", text: "  \n " })).toEqual({ ok: false, error: "texto_vacio" });
+    expect(await sources.addSource(viewers.a2, ids.m1, { origin: "x", text: "otro" })).toEqual({ ok: false, error: "no_existe" });
+    expect(await sources.addSource(viewers.d1, ids.m1, { origin: "x", text: "otro" })).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await sources.addSource(viewers.admin, ids.m1, { origin: "x", text: "otro" })).toEqual({ ok: false, error: "sin_permiso" });
   });
 });

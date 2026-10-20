@@ -9,6 +9,8 @@ export const help = {
     "Un nivel marca qué tan delicada es la información. Cada reunión y cada acción lleva uno, y cada persona tiene un nivel máximo. Los niveles son una lista que se puede editar.",
   meetingLevel:
     "Qué tan delicada es la reunión. Elige el nivel más bajo que le corresponda; solo ves los niveles hasta tu máximo. Quienes tengan un nivel máximo menor no la verán.",
+  transcript:
+    "Pega el texto de la transcripción o sube un archivo .txt, .md, .vtt o .srt. Se guarda solo el texto limpio, no el archivo. Si cargas el mismo texto dos veces en una reunión, se avisa y no se duplica.",
   sensitive: "Una reunión de nivel sensible nunca se envía a la IA y su ficha se captura a mano.",
 } as const;
 

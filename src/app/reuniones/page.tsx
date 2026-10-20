@@ -41,7 +41,9 @@ async function Meetings() {
             {meetings.map((m) => (
               <tr key={m.id}>
                 <td>{dateFormat.format(m.heldAt)}</td>
-                <td>{m.title}</td>
+                <td>
+                  <Link href={`/reuniones/${m.id}`}>{m.title}</Link>
+                </td>
                 <td>{m.level.name}</td>
               </tr>
             ))}
