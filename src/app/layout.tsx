@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { themeInitScript } from "@/lib/theme";
+import { ThemeToggle } from "./theme-toggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,8 +10,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body>
+        <header className="topbar">
+          <strong>MH Executive OS</strong>
+          <ThemeToggle />
+        </header>
+        {children}
+      </body>
     </html>
   );
 }
