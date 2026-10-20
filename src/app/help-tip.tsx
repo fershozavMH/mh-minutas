@@ -1,5 +1,6 @@
 import { help, type HelpKey } from "@/lib/help";
 
+// No va dentro de <p> ni de <label>: <details> no es válido ahí.
 // Ayuda en una línea: un «?» que se abre al hacer clic o con el teclado, sin ocupar espacio.
 export function HelpTip({ topic, label }: { topic: HelpKey; label: string }) {
   return (

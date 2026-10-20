@@ -194,3 +194,10 @@ nav {
   font-weight: 400;
   box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
 }
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}

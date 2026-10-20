@@ -36,29 +36,30 @@ export function UserForm({ levels, directors }: { levels: Option[]; directors: O
   return (
     <form onSubmit={submit}>
       <h2>Dar de alta</h2>
-      <p>
+      <div className="field">
         <label>
           Nombre <input name="name" required />
         </label>
-      </p>
-      <p>
+      </div>
+      <div className="field">
         <label>
           Correo <input name="email" type="email" required />
         </label>
-      </p>
-      <p>
+      </div>
+      <div className="field">
         <label>
-          Perfil <HelpTip topic="profile" label="Perfil" />{" "}
+          Perfil
           <select value={profile} onChange={(event) => setProfile(event.target.value)}>
             <option value="ASSISTANT">Asistente</option>
             <option value="DIRECTOR">Directivo</option>
             <option value="ADMIN">Administración</option>
           </select>
         </label>
-      </p>
-      <p>
+        <HelpTip topic="profile" label="Perfil" />
+      </div>
+      <div className="field">
         <label>
-          Nivel máximo <HelpTip topic="maxLevel" label="Nivel máximo" />{" "}
+          Nivel máximo
           <select name="maxLevelId" required>
             {levels.map((level) => (
               <option key={level.id} value={level.id}>
@@ -67,11 +68,12 @@ export function UserForm({ levels, directors }: { levels: Option[]; directors: O
             ))}
           </select>
         </label>
-      </p>
+        <HelpTip topic="maxLevel" label="Nivel máximo" />
+      </div>
       {profile === "ASSISTANT" && (
-        <p>
+        <div className="field">
           <label>
-            Directivo <HelpTip topic="boss" label="Directivo" />{" "}
+            Directivo
             <select name="bossId" required>
               {directors.map((director) => (
                 <option key={director.id} value={director.id}>
@@ -80,7 +82,8 @@ export function UserForm({ levels, directors }: { levels: Option[]; directors: O
               ))}
             </select>
           </label>
-        </p>
+        <HelpTip topic="boss" label="Directivo" />
+        </div>
       )}
       <button type="submit">Dar de alta</button>
       {message && <p>{message}</p>}
