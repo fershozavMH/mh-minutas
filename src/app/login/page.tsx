@@ -1,18 +1,14 @@
-"use client";
-
-import { authClient } from "@/lib/auth-client";
+import { testLoginEnabled } from "@/lib/test-login";
+import { GoogleButton } from "./google-button";
+import { TestLoginForm } from "./test-login-form";
 
 export default function LoginPage() {
   return (
     <main>
       <h1>Entrar a MH Executive OS</h1>
       <p>Usa tu cuenta de Google de Machinery Hunters.</p>
-      <button
-        type="button"
-        onClick={() => authClient.signIn.social({ provider: "google", callbackURL: "/" })}
-      >
-        Entrar con Google
-      </button>
+      <GoogleButton />
+      {testLoginEnabled() && <TestLoginForm />}
     </main>
   );
 }

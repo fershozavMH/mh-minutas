@@ -3,12 +3,15 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { isAllowedEmail } from "./allowed-email";
 import { getDb } from "./db";
+import { testLoginEnabled } from "./test-login";
 
 function createAuth() {
   const db = getDb();
 
   return betterAuth({
     database: prismaAdapter(db, { provider: "postgresql" }),
+    // Solo para pruebas locales con usuarios de prueba; nunca existe en un despliegue (ver test-login.ts).
+    emailAndPassword: { enabled: testLoginEnabled(), disableSignUp: true },
     socialProviders: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID ?? "",

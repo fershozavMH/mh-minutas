@@ -15,3 +15,6 @@
 ## T-09
 - Crear reunión con título, fecha y nivel obligatorio (`/reuniones`, `POST/GET /api/meetings`).
 - Solo asistentes crean, y solo en niveles activos hasta su máximo; cada alta queda en la auditoría.
+
+## Entrada de prueba
+- Correo y contraseña solo en local (`ENABLE_TEST_LOGIN=true`), solo para usuarios `prueba.*`; apagado siempre en producción.
