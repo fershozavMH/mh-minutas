@@ -19,7 +19,12 @@ function createAuth() {
       },
     },
     account: {
-      accountLinking: { enabled: true, trustedProviders: ["google"] },
+      // Las personas las da de alta Administración sin verificar su correo; Google lo verifica al entrar.
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ["google"],
+        requireLocalEmailVerified: false,
+      },
     },
     user: {
       additionalFields: {
