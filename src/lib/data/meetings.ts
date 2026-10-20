@@ -1,5 +1,6 @@
-import { meetingWhere, type Viewer } from "../access";
+import { canUseLevel, meetingWhere, type Viewer } from "../access";
 import { getDb } from "../db";
+import type { CreateMeetingInput } from "../meeting-schemas";
 import { recordSensitiveReads } from "./audit";
 
 // Única puerta de lectura de reuniones: todo pasa por el filtro de nivel.
@@ -20,4 +21,24 @@ export async function getMeeting(viewer: Viewer, id: string) {
   });
   if (meeting) await recordSensitiveReads(viewer.id, "Meeting", [meeting]);
   return meeting;
+}
+
+export type CreateMeetingResult =
+  | { ok: true; id: string }
+  | { ok: false; error: "sin_permiso" | "nivel_no_valido" | "nivel_no_permitido" };
+
+// Solo las asistentes capturan reuniones, y nunca en un nivel superior al suyo.
+export async function createMeeting(viewer: Viewer, input: CreateMeetingInput): Promise<CreateMeetingResult> {
+  if (viewer.profile !== "ASSISTANT") return { ok: false, error: "sin_permiso" };
+
+  const db = getDb();
+  const level = await db.level.findUnique({ where: { id: input.levelId } });
+  if (!level) return { ok: false, error: "nivel_no_valido" };
+  if (!canUseLevel(viewer, level)) return { ok: false, error: "nivel_no_permitido" };
+
+  const meeting = await db.meeting.create({
+    data: { title: input.title, heldAt: input.heldAt, levelId: level.id, createdById: viewer.id },
+  });
+  await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "Meeting", entityId: meeting.id } });
+  return { ok: true, id: meeting.id };
 }

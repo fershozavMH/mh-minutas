@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionWhere, meetingWhere, type Viewer } from "./access";
+import { actionWhere, canUseLevel, meetingWhere, type Viewer } from "./access";
 
 const assistant: Viewer = { id: "a1", profile: "ASSISTANT", maxLevel: { rank: 3 } };
 const director: Viewer = { id: "d1", profile: "DIRECTOR", maxLevel: { rank: 3 } };
@@ -35,5 +35,19 @@ describe("actionWhere", () => {
     expect(actionWhere(assistant)).toEqual({ level: { rank: { lte: 3 } }, createdById: "a1" });
     expect(actionWhere(director)).toEqual({ level: { rank: { lte: 3 } }, createdBy: { bossId: "d1" } });
     expect(actionWhere(admin)).toEqual({ id: { in: [] } });
+  });
+});
+
+describe("canUseLevel", () => {
+  const viewer = { id: "u1", profile: "ASSISTANT" as const, maxLevel: { rank: 2 } };
+
+  it("permite niveles activos hasta el máximo", () => {
+    expect(canUseLevel(viewer, { rank: 1, active: true })).toBe(true);
+    expect(canUseLevel(viewer, { rank: 2, active: true })).toBe(true);
+  });
+
+  it("rechaza niveles superiores o inactivos", () => {
+    expect(canUseLevel(viewer, { rank: 3, active: true })).toBe(false);
+    expect(canUseLevel(viewer, { rank: 1, active: false })).toBe(false);
   });
 });

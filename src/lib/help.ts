@@ -7,6 +7,8 @@ export const help = {
   boss: "El directivo al que apoya la asistente. Verá lo que ella capture, hasta su propio nivel máximo.",
   levels:
     "Un nivel marca qué tan delicada es la información. Cada reunión y cada acción lleva uno, y cada persona tiene un nivel máximo. Los niveles son una lista que se puede editar.",
+  meetingLevel:
+    "Qué tan delicada es la reunión. Elige el nivel más bajo que le corresponda; solo ves los niveles hasta tu máximo. Quienes tengan un nivel máximo menor no la verán.",
   sensitive: "Una reunión de nivel sensible nunca se envía a la IA y su ficha se captura a mano.",
 } as const;
 

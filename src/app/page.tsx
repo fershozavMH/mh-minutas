@@ -11,11 +11,9 @@ async function Greeting() {
   return (
     <>
       <p>Hola, {user.name}.</p>
-      {user.profile === "ADMIN" && (
-        <p>
-          <Link href="/admin">Usuarios</Link>
-        </p>
-      )}
+      <p>
+        {user.profile === "ADMIN" ? <Link href="/admin">Usuarios</Link> : <Link href="/reuniones">Reuniones</Link>}
+      </p>
       <SignOutButton />
     </>
   );

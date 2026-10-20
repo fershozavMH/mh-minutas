@@ -127,4 +127,16 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     await lists.getMeeting(viewers.a1, ids.m2);
     expect(await db.auditLog.count({ where: { userId: ids.a1, kind: "READ" } })).toBe(before + 1);
   });
+  it("solo las asistentes crean reuniones, y nunca en un nivel superior al suyo", async () => {
+    const input = (levelId: string) => ({ title: `${run}-nueva`, heldAt: new Date("2026-10-21T12:00:00Z"), levelId });
+    expect(await lists.createMeeting(viewers.a2, input(ids.high))).toEqual({ ok: false, error: "nivel_no_permitido" });
+    expect(await lists.createMeeting(viewers.d1, input(ids.low))).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await lists.createMeeting(viewers.admin, input(ids.low))).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await lists.createMeeting(viewers.a1, input("no-existe"))).toEqual({ ok: false, error: "nivel_no_valido" });
+
+    const created = await lists.createMeeting(viewers.a2, input(ids.low));
+    expect(created.ok).toBe(true);
+    expect(await db.auditLog.count({ where: { userId: ids.a2, kind: "CHANGE", entity: "Meeting" } })).toBe(1);
+    expect((await lists.listMeetings(viewers.d2)).some((m) => created.ok && m.id === created.id)).toBe(true);
+  });
 });

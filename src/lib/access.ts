@@ -35,3 +35,8 @@ export function actionWhere(viewer: Viewer): Prisma.ActionWhereInput {
       return nothing;
   }
 }
+
+// Quien captura solo puede usar niveles activos hasta su propio nivel máximo.
+export function canUseLevel(viewer: Viewer, level: { rank: number; active: boolean }): boolean {
+  return level.active && level.rank <= viewer.maxLevel.rank;
+}
