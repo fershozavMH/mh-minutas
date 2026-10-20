@@ -3,6 +3,7 @@
 ## Sin liberar
 
 - T-01: base del proyecto (Next.js, TypeScript, Prisma, Vitest, CI).
+- T-06: capa de acceso a datos con filtro por nivel y registro de lecturas sensibles.
 - T-05: alta de usuarios y edición de niveles para Administración (rutas y página /admin).
 - T-04: inicio de sesión con Google (better-auth) restringido a los dos dominios y a personas dadas de alta.
 - T-03: datos de prueba de niveles y estados, cliente de base de datos y seed.

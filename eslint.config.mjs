@@ -14,6 +14,22 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "src/generated/**",
   ]),
+  // Las rutas y páginas leen datos solo por la capa de acceso (src/lib/data); Administración es la excepción.
+  {
+    files: ["src/app/**/*.{ts,tsx}"],
+    ignores: ["src/app/api/admin/**", "src/app/admin/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "@/lib/db", message: "Usa la capa de acceso en src/lib/data." },
+            { name: "@/generated/prisma/client", message: "Usa la capa de acceso en src/lib/data." },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
