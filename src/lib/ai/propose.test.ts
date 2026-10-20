@@ -14,24 +14,37 @@ function clientReturning(content: unknown[]): AiClient {
 }
 
 describe("proposeFromTranscript", () => {
-  it("devuelve la propuesta validada y fuerza la herramienta de salida", async () => {
-    const client = clientReturning([{ type: "tool_use", name: "registrar_propuesta", input: valid }]);
+  const text = (value: unknown) => [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value) }];
+
+  it("devuelve la propuesta validada y pide salida estructurada", async () => {
+    const client = clientReturning(text(valid));
     expect(await proposeFromTranscript(client, "texto", "modelo-x")).toEqual(valid);
 
     const call = vi.mocked(client.messages.create).mock.calls[0][0];
     expect(call.model).toBe("modelo-x");
-    expect(call.tool_choice).toEqual({ type: "tool", name: "registrar_propuesta" });
+    expect(call.output_config?.format?.type).toBe("json_schema");
+    expect(call.tool_choice).toBeUndefined();
     expect(String(call.messages[0].content)).toContain("<transcript>\ntexto\n</transcript>");
   });
 
-  it("rechaza una respuesta sin herramienta", async () => {
-    const client = clientReturning([{ type: "text", text: "hola" }]);
+  it("rechaza una respuesta sin texto", async () => {
+    const client = clientReturning([]);
+    await expect(proposeFromTranscript(client, "texto")).rejects.toBeInstanceOf(AiOutputError);
+  });
+
+  it("rechaza un texto que no es JSON", async () => {
+    const client = clientReturning(text("hola"));
     await expect(proposeFromTranscript(client, "texto")).rejects.toBeInstanceOf(AiOutputError);
   });
 
   it("rechaza una propuesta que no cumple el formato", async () => {
     const bad = { ...valid, actions: [{ title: "x", ownerName: "Ana", dueDate: "mañana" }] };
-    const client = clientReturning([{ type: "tool_use", name: "registrar_propuesta", input: bad }]);
+    const client = clientReturning(text(bad));
+    await expect(proposeFromTranscript(client, "texto")).rejects.toBeInstanceOf(AiOutputError);
+  });
+
+  it("rechaza una respuesta cortada por límite de tokens", async () => {
+    const client = { messages: { create: vi.fn().mockResolvedValue({ stop_reason: "max_tokens", content: text(valid) }) } } as unknown as AiClient;
     await expect(proposeFromTranscript(client, "texto")).rejects.toBeInstanceOf(AiOutputError);
   });
 });

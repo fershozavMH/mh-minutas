@@ -169,7 +169,7 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
       nextSteps: ["N1"],
       actions: [{ title: "A1", ownerName: null, dueDate: null }],
     };
-    const create = vi.fn().mockResolvedValue({ content: [{ type: "tool_use", name: "registrar_propuesta", input: proposal }] });
+    const create = vi.fn().mockResolvedValue({ content: [{ type: "text", text: JSON.stringify(proposal) }] });
     const client = { messages: { create } } as unknown as import("../ai/propose").AiClient;
 
     const ok = await addSource(viewers.a2, ids.m3, { origin: "t", text: `${run} para la IA` });

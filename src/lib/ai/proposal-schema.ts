@@ -25,5 +25,20 @@ export const proposalSchema = z.object({
 
 export type Proposal = z.infer<typeof proposalSchema>;
 
-// Esquema que se le entrega al modelo como herramienta de salida obligatoria.
-export const proposalJsonSchema = z.toJSONSchema(proposalSchema, { target: "draft-7" });
+// Esquema que se le entrega al modelo como formato de salida. Va sin límites de largo ni de formato
+// (la salida estructurada no los admite); esos límites se exigen aquí al validar la respuesta.
+const looseSchema = z.object({
+  summary: z.string(),
+  decisions: z.array(z.string()),
+  risks: z.array(z.string()),
+  nextSteps: z.array(z.string()),
+  actions: z.array(
+    z.object({
+      title: z.string(),
+      ownerName: z.string().nullable(),
+      dueDate: z.string().nullable(),
+    }),
+  ),
+});
+
+export const proposalJsonSchema = z.toJSONSchema(looseSchema, { target: "draft-7" }) as Record<string, unknown>;
