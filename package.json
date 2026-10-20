@@ -17,6 +17,7 @@
     "db:test-passwords": "tsx prisma/test-passwords.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.136.0",
     "@neon/config": "^1.9.2",
     "@neon/env": "^1.6.3",
     "@neondatabase/serverless": "^1.2.0",
