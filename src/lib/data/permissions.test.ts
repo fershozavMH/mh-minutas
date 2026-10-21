@@ -263,6 +263,8 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     expect((await decideReview(viewers.a2, rejected.id, { decision: "reject", reason: "No se dijo en la junta" })).ok).toBe(true);
     const r = await db.reviewItem.findUnique({ where: { id: rejected.id } });
     expect(r).toMatchObject({ status: "REJECTED", rejectionReason: "No se dijo en la junta" });
-    expect(await db.action.count({ where: { createdById: ids.a2 } })).toBe(1);
+    // Solo existe la acción aprobada de este test; lo rechazado no creó nada oficial.
+    expect(await db.action.count({ where: { createdById: ids.a2, title: "Enviar accesos" } })).toBe(1);
+    expect(await db.action.count({ where: { createdById: ids.a2, title: "Otra cosa" } })).toBe(0);
   });
 });
