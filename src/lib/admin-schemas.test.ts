@@ -42,7 +42,7 @@ describe("niveles", () => {
 describe("esquemas de estados", () => {
   it("acepta un estado válido y por defecto no cierra", () => {
     const parsed = createStatusSchema.parse({ name: " En revisión ", position: 3 });
-    expect(parsed).toEqual({ name: "En revisión", position: 3, isClosed: false });
+    expect(parsed).toEqual({ name: "En revisión", position: 3, isClosed: false, requiresNote: false });
   });
   it("rechaza orden menor a 1 y nombre vacío", () => {
     expect(createStatusSchema.safeParse({ name: "x", position: 0 }).success).toBe(false);

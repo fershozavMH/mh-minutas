@@ -54,6 +54,8 @@ model ActionStatus {
   name      String   @unique
   position  Int
   isClosed  Boolean  @default(false)
+  // Pasar una acción a este estado exige una nota (por ejemplo, qué se espera o por qué se cancela).
+  requiresNote Boolean @default(false)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
@@ -188,6 +190,8 @@ model Action {
   // Importada sin fecha: se marca para depurarla aparte.
   undated       Boolean   @default(false)
   statusId      String
+  // Nota del estado actual (obligatoria si el estado lo pide); se limpia al cambiar a otro estado.
+  statusNote    String?
   levelId       String
   meetingId     String?
   createdById   String

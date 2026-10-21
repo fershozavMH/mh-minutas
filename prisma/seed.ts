@@ -19,7 +19,7 @@ async function main() {
   for (const status of testStatuses) {
     await db.actionStatus.upsert({
       where: { name: status.name },
-      update: { position: status.position, isClosed: status.isClosed },
+      update: { position: status.position, isClosed: status.isClosed, requiresNote: status.requiresNote },
       create: status,
     });
   }

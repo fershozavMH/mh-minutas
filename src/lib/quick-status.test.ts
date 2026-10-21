@@ -37,3 +37,18 @@ describe("quickStatuses", () => {
     expect(quickStatuses([])).toEqual([]);
   });
 });
+
+describe("quickStatuses con notas", () => {
+  it("marca qué botones piden nota", () => {
+    const statuses = [
+      { id: "p", name: "Pendiente", position: 1, isClosed: false },
+      { id: "c", name: "Completado", position: 5, isClosed: true },
+      { id: "x", name: "Cancelado", position: 6, isClosed: true, requiresNote: true },
+    ];
+    expect(quickStatuses(statuses).map((q) => [q.kind, q.requiresNote])).toEqual([
+      ["pending", false],
+      ["done", false],
+      ["cancelled", true],
+    ]);
+  });
+});

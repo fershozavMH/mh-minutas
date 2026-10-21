@@ -8,6 +8,7 @@ const statuses = {
   estado_invalido: 400,
   sin_estado: 503,
   persona_invalida: 400,
+  nota_obligatoria: 400,
 } as const;
 
 export function actionResponse(result: ActionChangeResult) {

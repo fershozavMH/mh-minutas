@@ -15,6 +15,8 @@ export const updateActionSchema = z
     ownerId: z.string().min(1).nullable().optional(),
     dueDate: z.string().refine(isRealDay, { message: "fecha_obligatoria" }).optional(),
     statusId: z.string().min(1).optional(),
+    // Nota del estado; si viene vacía se interpreta como «sin nota».
+    statusNote: z.string().trim().max(500).optional(),
   })
   .refine((value) => Object.values(value).some((v) => v !== undefined), { message: "sin_cambios" });
 

@@ -337,6 +337,35 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     await db.action.deleteMany({ where: { id: { in: [a.id, fresh!.id] } } });
     await db.actionStatus.delete({ where: { id: status2.id } });
   });
+  it("estados que piden nota: no se fijan sin ella y la nota se limpia al salir", async () => {
+    const api = await import("./actions");
+    const waiting = await db.actionStatus.create({ data: { name: `${run}-espera`, position: 3, requiresNote: true } });
+    const a = await db.action.create({
+      data: {
+        title: `${run}-con-nota`,
+        dueDate: new Date("2026-10-22T12:00:00Z"),
+        actionDate: new Date("2026-10-22T12:00:00Z"),
+        statusId: ids.status,
+        levelId: ids.low,
+        meetingId: ids.m3,
+        createdById: ids.a2,
+      },
+    });
+
+    expect(await api.updateAction(viewers.a2, a.id, { statusId: waiting.id })).toEqual({ ok: false, error: "nota_obligatoria" });
+    expect(await api.updateAction(viewers.a2, a.id, { statusId: waiting.id, statusNote: "" })).toEqual({ ok: false, error: "nota_obligatoria" });
+    expect((await db.action.findUnique({ where: { id: a.id } }))?.statusId).toBe(ids.status);
+
+    expect(await api.updateAction(viewers.a2, a.id, { statusId: waiting.id, statusNote: "Esperando respuesta de Rubén" })).toEqual({ ok: true });
+    const waited = await db.action.findUnique({ where: { id: a.id } });
+    expect([waited?.statusId, waited?.statusNote]).toEqual([waiting.id, "Esperando respuesta de Rubén"]);
+    expect((await db.changeLog.findMany({ where: { actionId: a.id, field: "statusNote" } })).length).toBe(1);
+
+    // Al salir del estado, la nota se limpia y queda en el historial.
+    expect(await api.updateAction(viewers.a2, a.id, { statusId: ids.status })).toEqual({ ok: true });
+    expect((await db.action.findUnique({ where: { id: a.id } }))?.statusNote).toBeNull();
+    expect((await db.changeLog.findMany({ where: { actionId: a.id, field: "statusNote" } })).length).toBe(2);
+  });
   it("filtros de acciones: se suman a la visibilidad y no la reemplazan", async () => {
     const api = await import("./actions");
     const mk = (title: string, ownerName: string | null, dueDate: string | null, createdById: string) =>

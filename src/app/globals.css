@@ -359,3 +359,30 @@ button[aria-busy="true"]::after {
   font-size: 0.8em;
   white-space: nowrap;
 }
+
+.quick-status-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  width: 100%;
+}
+.hint-inline {
+  display: block;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.quick-status-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  width: 100%;
+}
+.hint-inline {
+  display: block;
+  width: 100%;
+  font-size: 0.85em;
+  opacity: 0.8;
+}

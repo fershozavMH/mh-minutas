@@ -74,7 +74,7 @@ export async function listRetiredActions(viewer: Viewer) {
 
 export type ActionChangeResult =
   | { ok: true; id?: string }
-  | { ok: false; error: "sin_permiso" | "no_existe" | "retirada" | "sin_cambios" | "estado_invalido" | "sin_estado" | "persona_invalida" };
+  | { ok: false; error: "sin_permiso" | "no_existe" | "retirada" | "sin_cambios" | "estado_invalido" | "sin_estado" | "persona_invalida" | "nota_obligatoria" };
 
 const day = (date: Date | null) => (date ? date.toISOString().slice(0, 10) : null);
 
@@ -114,11 +114,29 @@ export async function updateAction(viewer: Viewer, id: string, input: UpdateActi
     if (day(action.actionDate) === day(action.dueDate)) data.actionDate = due;
     changes.push({ field: "dueDate", oldValue: day(action.dueDate), newValue: input.dueDate });
   }
-  if (input.statusId !== undefined && input.statusId !== action.statusId) {
+  let target = action.status;
+  const statusChanged = input.statusId !== undefined && input.statusId !== action.statusId;
+  if (statusChanged) {
     const status = await db.actionStatus.findFirst({ where: { id: input.statusId, active: true } });
     if (!status) return { ok: false, error: "estado_invalido" };
     data.statusId = status.id;
+    target = status;
     changes.push({ field: "status", oldValue: action.status.name, newValue: status.name });
+  }
+  // Los estados que piden nota (En espera, Cancelado) no se pueden fijar sin ella.
+  // Una acción que ya estaba en ese estado sin nota (de antes) no obliga a ponerla al editar otra cosa.
+  if (target.requiresNote) {
+    if (statusChanged || input.statusNote !== undefined) {
+      const note = input.statusNote ?? "";
+      if (note === "") return { ok: false, error: "nota_obligatoria" };
+      if (note !== (action.statusNote ?? "")) {
+        data.statusNote = note;
+        changes.push({ field: "statusNote", oldValue: action.statusNote, newValue: note });
+      }
+    }
+  } else if (statusChanged && action.statusNote) {
+    data.statusNote = null;
+    changes.push({ field: "statusNote", oldValue: action.statusNote, newValue: null });
   }
   if (changes.length === 0) return { ok: false, error: "sin_cambios" };
 

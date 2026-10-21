@@ -84,9 +84,17 @@ async function Actions({
                   <td>{a.ownerName ?? "Sin responsable"}</td>
                   <td>
                     {canEdit ? (
-                      <QuickStatusCell actionId={a.id} current={{ id: a.status.id, name: a.status.name }} options={quick} />
+                      <QuickStatusCell
+                        actionId={a.id}
+                        current={{ id: a.status.id, name: a.status.name }}
+                        currentNote={a.statusNote}
+                        options={quick}
+                      />
                     ) : (
-                      a.status.name
+                      <>
+                        {a.status.name}
+                        {a.statusNote ? <span className="hint-inline">{a.statusNote}</span> : null}
+                      </>
                     )}
                   </td>
                   <td>{a.meeting?.title ?? ""}</td>

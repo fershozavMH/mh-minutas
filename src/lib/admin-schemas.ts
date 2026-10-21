@@ -47,6 +47,7 @@ export const createStatusSchema = z.object({
   name: z.string().trim().min(1).max(60),
   position: z.number().int().min(1),
   isClosed: z.boolean().default(false),
+  requiresNote: z.boolean().default(false),
 });
 
 export const updateStatusSchema = z
@@ -55,6 +56,7 @@ export const updateStatusSchema = z
     name: z.string().trim().min(1).max(60).optional(),
     position: z.number().int().min(1).optional(),
     isClosed: z.boolean().optional(),
+    requiresNote: z.boolean().optional(),
     active: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).some((key) => key !== "id"), {

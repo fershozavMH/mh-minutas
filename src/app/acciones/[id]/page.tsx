@@ -21,6 +21,7 @@ const fieldLabel: Record<string, string> = {
   ownerName: "Responsable",
   dueDate: "Fecha de compromiso",
   status: "Estado",
+  statusNote: "Nota del estado",
   retired: "Retirada",
   replaced: "Reemplazada por",
   replaces: "Reemplaza a",
@@ -40,7 +41,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const canEdit = user.profile === "ASSISTANT" && !action.retiredAt;
   const statusOptions = statuses.some((s) => s.id === action.statusId)
     ? statuses
-    : [{ id: action.statusId, name: action.status.name }, ...statuses];
+    : [{ id: action.statusId, name: action.status.name, requiresNote: action.status.requiresNote }, ...statuses];
 
   return (
     <>
@@ -63,13 +64,17 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           people={people.map((p) => ({ id: p.id, name: p.name }))}
           dueDate={action.dueDate ? action.dueDate.toISOString().slice(0, 10) : ""}
           statusId={action.statusId}
-          statuses={statusOptions.map((s) => ({ id: s.id, name: s.name }))}
+          statusNote={action.statusNote ?? ""}
+          statuses={statusOptions.map((s) => ({ id: s.id, name: s.name, requiresNote: s.requiresNote }))}
         />
       ) : (
         <ul>
           <li>Responsable: {action.ownerName ?? "Sin responsable"}</li>
           <li>Compromiso: {action.dueDate ? dateFormat.format(action.dueDate) : "Sin fecha"}</li>
-          <li>Estado: {action.status.name}</li>
+          <li>
+            Estado: {action.status.name}
+            {action.statusNote ? ` (${action.statusNote})` : ""}
+          </li>
           <li>Nivel: {action.level.name}</li>
           {action.meeting && <li>Reunión: {action.meeting.title}</li>}
         </ul>

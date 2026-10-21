@@ -12,12 +12,14 @@ type Props = {
   ownerId: string;
   dueDate: string;
   statusId: string;
-  statuses: { id: string; name: string }[];
+  statusNote: string;
+  statuses: { id: string; name: string; requiresNote: boolean }[];
   people: PersonOption[];
 };
 
 const errors: Record<string, string> = {
   fecha_obligatoria: "Toda acción necesita una fecha de compromiso.",
+  nota_obligatoria: "Ese estado pide una nota: escribe qué se espera o por qué se cancela.",
   sin_cambios: "No hay nada que cambiar.",
   datos_invalidos: "Revisa el título y la fecha.",
   retirada: "Esta acción ya está retirada.",
@@ -46,6 +48,8 @@ export function ActionEditor(props: Props) {
   const [owner, setOwner] = useState({ ownerId: props.ownerId, ownerName: props.ownerName });
   const [due, setDue] = useState(props.dueDate);
   const [statusId, setStatusId] = useState(props.statusId);
+  const [statusNote, setStatusNote] = useState(props.statusNote);
+  const needsNote = props.statuses.find((s) => s.id === statusId)?.requiresNote ?? false;
   const [mode, setMode] = useState<"retire" | "replace" | null>(null);
   const [reason, setReason] = useState("");
   const [newTitle, setNewTitle] = useState("");
@@ -72,6 +76,7 @@ export function ActionEditor(props: Props) {
           ownerName: owner.ownerId ? null : owner.ownerName || null,
           dueDate: due || "",
           statusId,
+          ...(needsNote ? { statusNote } : {}),
         }),
       () => {
         setMessage("Cambios guardados.");
@@ -126,6 +131,14 @@ export function ActionEditor(props: Props) {
           </select>
         </label>
       </div>
+      {needsNote && (
+        <div className="field">
+          <label>
+            Nota del estado (qué se espera o por qué se cancela)
+            <input value={statusNote} maxLength={500} onChange={(e) => setStatusNote(e.target.value)} required />
+          </label>
+        </div>
+      )}
       <p>
         <button type="button" disabled={busy} aria-busy={busy} onClick={save}>
           {busy ? "Guardando…" : "Guardar cambios"}
