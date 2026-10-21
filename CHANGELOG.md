@@ -2,6 +2,7 @@
 
 ## Sin liberar
 
+- Alerta de temas sensibles antes de la IA: si el texto parece tratar contrataciones, bajas de colaboradores, créditos, sueldos, bonos y comisiones o conflictos internos y la reunión no es sensible, no se envía sin confirmar; se puede marcar la reunión como sensible o enviar de todos modos (queda en la auditoría). Nueva opción de subir el nivel de una reunión (solo hacia arriba) en PATCH /api/meetings/[id].
 - Lo cerrado se archiva de la lista de acciones: las completadas o canceladas hace más de 7 días (según su último cambio) no salen, salvo con «Ver cerradas» o filtrando por un estado. Los filtros ahora siguen a la dirección cuando cambia por fuera (por ejemplo, el enlace «Acciones»).
 - Estándar de 6 estados (Pendiente, En progreso, En revisión, En espera, Completado, Cancelado) en los datos de ejemplo; en Administración se pueden renombrar y reordenar estados y niveles. Los estados pueden pedir una nota (En espera y Cancelado): sin nota no se fijan, la nota se ve en la lista y se limpia al salir del estado, con historial. Migración `20261021210000_status_notes` (solo agrega columnas; reversa en el propio archivo).
 - Botones rápidos de estado en la lista de acciones (pendiente, completado, cancelado): un clic, cambio inmediato y vuelta atrás si el servidor lo rechaza. Los estados se toman de los activos en Administración, sin atarse a un nombre. Solo para asistentes.

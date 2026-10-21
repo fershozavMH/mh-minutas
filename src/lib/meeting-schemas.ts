@@ -24,3 +24,8 @@ export const createMeetingSchema = z.object({
 export type CreateMeetingInput = z.infer<typeof createMeetingSchema>;
 
 export const updateMeetingDateSchema = z.object({ heldAt: day });
+
+// Cambios a una reunión: su fecha, o subirle el nivel (bajarlo no se permite desde aquí).
+export const updateMeetingSchema = z
+  .object({ heldAt: day.optional(), levelId: z.string().min(1).optional() })
+  .refine((value) => value.heldAt !== undefined || value.levelId !== undefined, { message: "sin_cambios" });

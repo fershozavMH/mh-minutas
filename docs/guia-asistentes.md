@@ -19,6 +19,14 @@ Para quien carga reuniones y da seguimiento a las acciones. No necesitas saber d
 6. **Una acción aprobada necesita fecha de compromiso**; el responsable es opcional. Si el responsable se parece a alguien del registro de personas, la app te lo sugiere.
 7. **Da seguimiento en *Acciones***: filtra por responsable, estado, fecha o atrasadas; cambia estado y fecha desde el detalle; retira o reemplaza lo que ya no aplica. Los cambios quedan en el historial.
 
+## Estados de una acción
+
+Pendiente, En progreso, En revisión, En espera, Completado y Cancelado. **En espera** y **Cancelado** piden una nota (qué se espera, o por qué se cancela). En la lista, los botones ○ ✓ ✕ cambian el estado de un clic. Lo completado o cancelado sale de la lista a los 7 días; con «Ver cerradas» vuelve a verse.
+
+## Si el texto parece sensible
+
+Si al pedir la propuesta aparece el aviso de temas sensibles (contrataciones, bajas, créditos, sueldos, bonos y comisiones, conflictos internos), puedes marcar la reunión como sensible (no se envía a la IA y un nivel solo sube, no baja) o confirmar que no lo es y enviarla.
+
 ## Registro de personas
 
 En *Personas* están quienes pueden ser responsables, tengan o no inicio de sesión. El correo es opcional, pero sin él la persona no recibirá recordatorios cuando existan. Una persona no se borra: se desactiva.

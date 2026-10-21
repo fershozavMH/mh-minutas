@@ -39,3 +39,11 @@ Formato: contexto, decisión y consecuencia. Una decisión nueva se agrega al fi
 
 ## ADR-009 Ramas y liberación
 - **Decisión:** todo va a `develop`; `main` es producción y solo se fusiona con autorización explícita de Fernando. Migraciones destructivas, borrado de datos y envío de correos también requieren su sí.
+
+## ADR-010 Alerta de temas sensibles antes de la IA
+- **Contexto:** la reunión se marca con un nivel a mano; un texto sensible podría cargarse en una reunión que no lo es. La dirección dio una lista parcial de temas sensibles (21 oct 2026).
+- **Decisión:** antes de enviar un texto a la IA, el servidor busca esos temas (`src/lib/sensitive-topics.ts`). Si aparecen y la reunión no es sensible, no se envía sin confirmación; la persona puede subir el nivel de la reunión (solo hacia arriba) o confirmar el envío, y la confirmación queda en la auditoría.
+- **Consecuencia:** es una alerta con posibles falsos positivos, no una garantía; el nivel de la reunión sigue siendo la regla. La lista se edita en el archivo; «Créditos» está por aclarar.
+
+## ADR-011 Estados que piden nota y archivo de lo cerrado
+- **Decisión:** cada estado puede pedir una nota (`requiresNote`): En espera (qué se espera) y Cancelado (por qué). Sin nota no se fija el estado; la nota se limpia al salir y queda en el historial. Lo cerrado hace más de 7 días (por su último cambio) no sale en la lista salvo con «Ver cerradas».

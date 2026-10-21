@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/current-user";
+import { listLevelsFor } from "@/lib/data/levels";
 import { getMeeting } from "@/lib/data/meetings";
 import { listPeople } from "@/lib/data/people";
 import { matchPerson } from "@/lib/person-match";
@@ -30,6 +31,10 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const canUpload = user.profile === "ASSISTANT";
   // Un solo siguiente paso a la vez, para no saturar la pantalla.
   const sensitive = meeting.level.isSensitive;
+  // Nivel sensible al que la asistente puede pasar esta reunión, para el aviso de temas sensibles.
+  const usableLevels = canUpload ? await listLevelsFor(user) : [];
+  const sensitiveLevelFull = usableLevels.find((l) => l.isSensitive && l.rank >= meeting.level.rank);
+  const sensitiveLevel = sensitiveLevelFull ? { id: sensitiveLevelFull.id, name: sensitiveLevelFull.name } : null;
   const proposed = new Set(meeting.reviewItems.map((item) => item.sourceId));
   const asRow = (item: (typeof meeting.reviewItems)[number]): ReviewRow => {
     const value = (item.editedValue ?? item.aiValue) as Record<string, string | null>;
@@ -79,7 +84,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             <li key={s.id}>
               {s.origin} · {dateTimeFormat.format(s.createdAt)}{" "}
               {canUpload && !sensitive && !proposed.has(s.id) && (
-                <ProposeButton meetingId={meeting.id} sourceId={s.id} />
+                <ProposeButton meetingId={meeting.id} sourceId={s.id} sensitiveLevel={sensitiveLevel} />
               )}
               {proposed.has(s.id) && "· Propuesta generada"}
             </li>

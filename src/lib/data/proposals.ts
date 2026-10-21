@@ -1,9 +1,11 @@
 import { meetingWhere, type Viewer } from "../access";
 import { type AiClient, AiOutputError, createAiClient, proposeFromTranscript } from "../ai/propose";
 import { getDb } from "../db";
+import { detectSensitiveTopics } from "../sensitive-topics";
 
 export type ProposalResult =
   | { ok: true; count: number }
+  | { ok: false; error: "posible_sensible"; topics: string[] }
   | {
       ok: false;
       error: "sin_permiso" | "no_existe" | "nivel_sensible" | "ya_propuesto" | "limite_diario" | "ia_no_configurada" | "ia_fallo";
@@ -21,7 +23,7 @@ export async function requestProposal(
   viewer: Viewer,
   meetingId: string,
   sourceId: string,
-  deps: { client?: AiClient } = {},
+  deps: { client?: AiClient; acknowledgeTopics?: boolean } = {},
 ): Promise<ProposalResult> {
   if (viewer.profile !== "ASSISTANT") return { ok: false, error: "sin_permiso" };
 
@@ -37,6 +39,16 @@ export async function requestProposal(
     return { ok: false, error: "nivel_sensible" };
   }
   if ((await db.reviewItem.count({ where: { sourceId } })) > 0) return { ok: false, error: "ya_propuesto" };
+
+  // Alerta: el texto parece tocar un tema sensible aunque la reunión no esté marcada así.
+  // Solo se envía a la IA si la persona lo confirma, y la confirmación queda en la auditoría.
+  const topics = detectSensitiveTopics(source.normalizedText);
+  if (topics.length > 0) {
+    if (!deps.acknowledgeTopics) return { ok: false, error: "posible_sensible", topics };
+    await db.auditLog.create({
+      data: { userId: viewer.id, kind: "CHANGE", entity: "AiSensitiveOverride", entityId: sourceId },
+    });
+  }
 
   let client: AiClient;
   try {
