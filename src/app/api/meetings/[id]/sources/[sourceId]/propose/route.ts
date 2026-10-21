@@ -6,6 +6,7 @@ const statuses = {
   nivel_sensible: 403,
   no_existe: 404,
   ya_propuesto: 409,
+  limite_diario: 429,
   ia_no_configurada: 503,
   ia_fallo: 502,
 } as const;

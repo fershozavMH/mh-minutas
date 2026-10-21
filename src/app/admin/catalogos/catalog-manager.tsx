@@ -57,10 +57,10 @@ export function CatalogManager({ levels, statuses }: { levels: Level[]; statuses
       <table>
         <thead>
           <tr>
-            <th>Rango</th>
-            <th>Nombre</th>
-            <th>Sensible</th>
-            <th>Estado</th>
+            <th scope="col">Rango</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Sensible</th>
+            <th scope="col">Estado</th>
             <th />
           </tr>
         </thead>
@@ -107,10 +107,10 @@ export function CatalogManager({ levels, statuses }: { levels: Level[]; statuses
       <table>
         <thead>
           <tr>
-            <th>Orden</th>
-            <th>Nombre</th>
-            <th>Cierra la acción</th>
-            <th>Estado</th>
+            <th scope="col">Orden</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Cierra la acción</th>
+            <th scope="col">Estado</th>
             <th />
           </tr>
         </thead>

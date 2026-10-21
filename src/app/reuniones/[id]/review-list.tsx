@@ -163,7 +163,7 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
                     </>
                   ) : (
                     <p>
-                      <textarea value={value.text} rows={3} onChange={(e) => patch(row, { text: e.target.value })} />
+                      <textarea aria-label="Texto de la propuesta" value={value.text} rows={3} onChange={(e) => patch(row, { text: e.target.value })} />
                     </p>
                   )
                 ) : (

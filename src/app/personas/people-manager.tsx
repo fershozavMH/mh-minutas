@@ -108,9 +108,9 @@ export function PeopleManager({ rows, canManage }: { rows: Row[]; canManage: boo
         <table>
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Estado</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Correo</th>
+              <th scope="col">Estado</th>
               <th />
             </tr>
           </thead>

@@ -33,13 +33,13 @@ async function Admin() {
       <table>
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Correo</th>
-            <th>Perfil</th>
-            <th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Correo</th>
+            <th scope="col">Perfil</th>
+            <th scope="col">
               Nivel máximo <HelpTip topic="maxLevel" label="Nivel máximo" />
             </th>
-            <th>Directivo</th>
+            <th scope="col">Directivo</th>
           </tr>
         </thead>
         <tbody>

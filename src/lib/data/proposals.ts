@@ -6,8 +6,14 @@ export type ProposalResult =
   | { ok: true; count: number }
   | {
       ok: false;
-      error: "sin_permiso" | "no_existe" | "nivel_sensible" | "ya_propuesto" | "ia_no_configurada" | "ia_fallo";
+      error: "sin_permiso" | "no_existe" | "nivel_sensible" | "ya_propuesto" | "limite_diario" | "ia_no_configurada" | "ia_fallo";
     };
+
+// Tope de llamadas a la IA por persona en 24 h (AI_DAILY_LIMIT; por defecto 30, estimado).
+export function dailyAiLimit(env: Record<string, string | undefined> = process.env) {
+  const value = Number(env.AI_DAILY_LIMIT);
+  return Number.isInteger(value) && value > 0 ? value : 30;
+}
 
 // La IA solo propone: cada resultado queda como ReviewItem pendiente hasta que una persona lo apruebe.
 // Un nivel sensible nunca llega a la IA: se corta aquí, antes de crear el cliente o enviar texto alguno.
@@ -39,6 +45,14 @@ export async function requestProposal(
     return { ok: false, error: "ia_no_configurada" };
   }
 
+  // Cada llamada se registra antes de hacerla: así el tope cuenta también las que fallan.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const used = await db.auditLog.count({
+    where: { userId: viewer.id, entity: "AiCall", createdAt: { gte: since } },
+  });
+  if (used >= dailyAiLimit()) return { ok: false, error: "limite_diario" };
+  await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "AiCall", entityId: sourceId } });
+
   let proposal;
   try {
     proposal = await proposeFromTranscript(client, source.normalizedText, {
@@ -48,6 +62,9 @@ export async function requestProposal(
     if (!(error instanceof AiOutputError)) console.error("Error al llamar a la IA", error);
     return { ok: false, error: "ia_fallo" };
   }
+
+  // Si otra solicitud simultánea ya guardó la propuesta, se descarta esta para no duplicar.
+  if ((await db.reviewItem.count({ where: { sourceId } })) > 0) return { ok: false, error: "ya_propuesto" };
 
   const rows = [
     { kind: "SUMMARY" as const, aiValue: { text: proposal.summary } },

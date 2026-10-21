@@ -77,13 +77,13 @@ async function Actions({ searchParams }: { searchParams: Promise<Record<string, 
         <table>
           <thead>
             <tr>
-              <th>
+              <th scope="col">
                 Compromiso <HelpTip topic="actions" label="Acciones oficiales" />
               </th>
-              <th>Acción</th>
-              <th>Responsable</th>
-              <th>Estado</th>
-              <th>Reunión</th>
+              <th scope="col">Acción</th>
+              <th scope="col">Responsable</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Reunión</th>
             </tr>
           </thead>
           <tbody>

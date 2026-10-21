@@ -5,6 +5,7 @@ import { useState } from "react";
 
 const errors: Record<string, string> = {
   ya_propuesto: "Este transcript ya tiene propuesta.",
+  limite_diario: "Llegaste al límite diario de propuestas de la IA. Intenta mañana o pide a Fernando que lo suba.",
   nivel_sensible: "Una reunión sensible no se envía a la IA.",
   ia_no_configurada: "La IA aún no está configurada en este entorno.",
   ia_fallo: "La IA no pudo responder. Intenta de nuevo en un momento.",

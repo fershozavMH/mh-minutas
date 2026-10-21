@@ -32,9 +32,9 @@ async function Meetings() {
         <table>
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Título</th>
-              <th>Nivel</th>
+              <th scope="col">Fecha</th>
+              <th scope="col">Título</th>
+              <th scope="col">Nivel</th>
             </tr>
           </thead>
           <tbody>

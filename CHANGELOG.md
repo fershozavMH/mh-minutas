@@ -2,6 +2,7 @@
 
 ## Sin liberar
 
+- Revisión de seguridad y accesibilidad (parcial): tope diario de propuestas de la IA por persona (AI_DAILY_LIMIT, 30 por defecto), descarte de propuestas duplicadas por solicitudes simultáneas, cabeceras de seguridad, etiqueta en el campo de edición y encabezados de tabla con alcance.
 - Administración de niveles y estados (/admin/catalogos y /api/admin/statuses): alta y desactivación, nada se borra; siempre queda un estado abierto activo.
 - T-01: base del proyecto (Next.js, TypeScript, Prisma, Vitest, CI).
 - T-08b: ayudas contextuales (signo ?), página de ayuda y siguiente paso en Administración.
