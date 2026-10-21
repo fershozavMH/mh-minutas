@@ -111,7 +111,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           </ul>
         </>
       )}
-      {canUpload && <SourceForm meetingId={meeting.id} />}
+      {canUpload && <SourceForm meetingId={meeting.id} heldAt={meeting.heldAt.toISOString().slice(0, 10)} />}
     </>
   );
 }

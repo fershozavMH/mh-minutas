@@ -42,3 +42,16 @@ export async function createMeeting(viewer: Viewer, input: CreateMeetingInput): 
   await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "Meeting", entityId: meeting.id } });
   return { ok: true, id: meeting.id };
 }
+
+export type UpdateMeetingDateResult = { ok: true } | { ok: false; error: "sin_permiso" | "no_existe" };
+
+// Corrige la fecha de la reunión (por ejemplo, la que dice el texto cargado). Solo la asistente dueña.
+export async function updateMeetingDate(viewer: Viewer, id: string, heldAt: Date): Promise<UpdateMeetingDateResult> {
+  if (viewer.profile !== "ASSISTANT") return { ok: false, error: "sin_permiso" };
+
+  const db = getDb();
+  const found = await db.meeting.updateMany({ where: { AND: [{ id }, meetingWhere(viewer)] }, data: { heldAt } });
+  if (found.count === 0) return { ok: false, error: "no_existe" };
+  await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "Meeting", entityId: id } });
+  return { ok: true };
+}

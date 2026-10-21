@@ -22,3 +22,5 @@ export const createMeetingSchema = z.object({
 });
 
 export type CreateMeetingInput = z.infer<typeof createMeetingSchema>;
+
+export const updateMeetingDateSchema = z.object({ heldAt: day });

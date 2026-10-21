@@ -160,6 +160,17 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     expect(await sources.addSource(viewers.d1, ids.m1, { origin: "x", text: "otro" })).toEqual({ ok: false, error: "sin_permiso" });
     expect(await sources.addSource(viewers.admin, ids.m1, { origin: "x", text: "otro" })).toEqual({ ok: false, error: "sin_permiso" });
   });
+  it("fecha de la reunión: solo la asistente dueña la corrige y queda en la auditoría", async () => {
+    const day = new Date("2026-10-20T12:00:00.000Z");
+    expect(await lists.updateMeetingDate(viewers.a2, ids.m3, day)).toEqual({ ok: true });
+    expect((await db.meeting.findUnique({ where: { id: ids.m3 } }))?.heldAt.toISOString()).toBe(day.toISOString());
+    expect(await db.auditLog.count({ where: { userId: ids.a2, entity: "Meeting", entityId: ids.m3, kind: "CHANGE" } })).toBeGreaterThan(0);
+
+    // Otra asistente no la ve; directivo y Administración no la cambian.
+    expect(await lists.updateMeetingDate(viewers.a1, ids.m3, day)).toEqual({ ok: false, error: "no_existe" });
+    expect(await lists.updateMeetingDate(viewers.d2, ids.m3, day)).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await lists.updateMeetingDate(viewers.admin, ids.m3, day)).toEqual({ ok: false, error: "sin_permiso" });
+  });
   it("la IA solo propone: crea pendientes y nunca recibe un nivel sensible", async () => {
     const { addSource } = await import("./sources");
     const { requestProposal } = await import("./proposals");
