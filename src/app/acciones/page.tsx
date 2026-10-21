@@ -8,7 +8,9 @@ import { listMeetings } from "@/lib/data/meetings";
 import { listActiveStatuses } from "@/lib/data/statuses";
 import { HelpTip } from "../help-tip";
 import { SignOutButton } from "../sign-out-button";
+import { quickStatuses } from "@/lib/quick-status";
 import { FiltersForm } from "./filters-form";
+import { QuickStatusCell } from "./quick-status";
 
 const dateFormat = new Intl.DateTimeFormat("es-MX", {
   dateStyle: "medium",
@@ -26,12 +28,15 @@ async function Actions({
 
   const filters = parseActionFilters(await searchParams);
   const filtered = Object.keys(filters).length > 0;
+  const canEdit = user.profile === "ASSISTANT";
   const [actions, retired, statuses, meetings] = await Promise.all([
     listActions(user, filters),
     listRetiredActions(user),
     listActiveStatuses(),
     listMeetings(user),
   ]);
+
+  const quick = quickStatuses(statuses);
 
   return (
     <>
@@ -77,7 +82,13 @@ async function Actions({
                     <Link href={`/acciones/${a.id}`}>{a.title}</Link>
                   </td>
                   <td>{a.ownerName ?? "Sin responsable"}</td>
-                  <td>{a.status.name}</td>
+                  <td>
+                    {canEdit ? (
+                      <QuickStatusCell actionId={a.id} current={{ id: a.status.id, name: a.status.name }} options={quick} />
+                    ) : (
+                      a.status.name
+                    )}
+                  </td>
                   <td>{a.meeting?.title ?? ""}</td>
                 </tr>
               ))}

@@ -2,6 +2,7 @@
 
 ## Sin liberar
 
+- Botones rápidos de estado en la lista de acciones (pendiente, completado, cancelado): un clic, cambio inmediato y vuelta atrás si el servidor lo rechaza. Los estados se toman de los activos en Administración, sin atarse a un nombre. Solo para asistentes.
 - Fecha de la reunión sugerida desde el texto: al cargar un transcript o minuta, si el encabezado trae una fecha distinta, se ofrece «Usar esa fecha» (nada cambia sin confirmar). Nueva ruta PATCH /api/meetings/[id] solo para la asistente dueña, con auditoría.
 - Filtros de /acciones sin recargar la página: se aplican al cambiar (el responsable con una pausa de 400 ms), la lista se atenúa mientras se actualiza y el botón «atrás» los respeta.
 - Carga visible en Personas y demás formularios: el indicador dura al menos 400 ms y se mantiene hasta que llegan los datos nuevos (hook `useBusy`).

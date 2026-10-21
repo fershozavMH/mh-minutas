@@ -342,3 +342,20 @@ button[aria-busy="true"]::after {
 .filters-status:empty {
   display: none;
 }
+
+/* Estado con botones rápidos en la lista de acciones. */
+.quick-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.quick-status-buttons {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.quick-status-buttons button {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
