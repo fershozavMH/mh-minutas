@@ -47,3 +47,8 @@ Formato: contexto, decisión y consecuencia. Una decisión nueva se agrega al fi
 
 ## ADR-011 Estados que piden nota y archivo de lo cerrado
 - **Decisión:** cada estado puede pedir una nota (`requiresNote`): En espera (qué se espera) y Cancelado (por qué). Sin nota no se fija el estado; la nota se limpia al salir y queda en el historial. Lo cerrado hace más de 7 días (por su último cambio) no sale en la lista salvo con «Ver cerradas».
+
+## ADR-012 Acciones repetidas, tipos y avances
+- **Contexto:** el modelo de referencia de Daray exige que una acción repetida en otra junta se sume como avance de la existente (llegó a recibir decenas de duplicadas), que lo cerrado no se reabra y que cada pendiente tenga un tipo (quién entrega y qué papel tiene quien da seguimiento).
+- **Decisión:** al aprobar una acción, el servidor compara su título con las acciones visibles para la persona (similitud de palabras significativas, umbral 0.6, hasta 3 candidatas). Si hay parecidas y no se resolvió, responde `posible_duplicado` y la propuesta sigue pendiente. La persona elige sumar un avance (`FollowUp`, con fecha y reunión de origen; la acción no cambia de estado) o crear una nueva. Los tipos son un catálogo editable (`ActionType`), no una lista fija, y no llevan nombres de personas.
+- **Consecuencia:** es una heurística: puede avisar de más o dejar pasar variantes muy distintas; la decisión siempre es de la persona. Solo compara contra las acciones que ella ve, para no filtrar información de otros niveles.

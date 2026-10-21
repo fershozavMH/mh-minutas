@@ -12,26 +12,46 @@ function filterWhere(filters: ActionFilters): Prisma.ActionWhereInput {
   const conditions: Prisma.ActionWhereInput[] = [];
   if (filters.statusId) conditions.push({ statusId: filters.statusId });
   if (filters.meetingId) conditions.push({ meetingId: filters.meetingId });
-  if (filters.owner) conditions.push({ ownerName: { contains: filters.owner, mode: "insensitive" } });
+  if (filters.owner)
+    conditions.push({
+      ownerName: { contains: filters.owner, mode: "insensitive" },
+    });
+  if (filters.typeId) conditions.push({ typeId: filters.typeId });
+  if (filters.urgent) conditions.push({ priority: "URGENT" });
+  if (filters.appeared)
+    conditions.push({
+      OR: [{ actionDate: null }, { actionDate: { lt: dayStart(addDays(todayInHermosillo(), 1)) } }],
+    });
   if (filters.due === "none") conditions.push({ dueDate: null });
   if (filters.due === "overdue") conditions.push({ dueDate: { lt: today }, status: { isClosed: false } });
   if (filters.due === "week") {
-    conditions.push({ dueDate: { gte: today, lt: dayStart(addDays(todayInHermosillo(), 7)) } });
+    conditions.push({
+      dueDate: { gte: today, lt: dayStart(addDays(todayInHermosillo(), 7)) },
+    });
   }
   // Lo cerrado se archiva de la vista: sigue en el sistema, pero no sale pasados unos días
   // (la fecha es la del último cambio) salvo que se pida verlo o se filtre por un estado.
   if (!filters.showClosed && !filters.statusId) {
     const since = new Date(Date.now() - CLOSED_VISIBLE_DAYS * 24 * 60 * 60 * 1000);
-    conditions.push({ OR: [{ status: { isClosed: false } }, { updatedAt: { gte: since } }] });
+    conditions.push({
+      OR: [{ status: { isClosed: false } }, { updatedAt: { gte: since } }],
+    });
   }
   return { AND: conditions };
 }
 
 export async function listActions(viewer: Viewer, filters: ActionFilters = {}) {
   const actions = await getDb().action.findMany({
-    where: { AND: [actionWhere(viewer), { retiredAt: null }, filterWhere(filters)] },
+    where: {
+      AND: [actionWhere(viewer), { retiredAt: null }, filterWhere(filters)],
+    },
     orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
-    include: { level: true, status: true, meeting: { select: { id: true, title: true } } },
+    include: {
+      level: true,
+      status: true,
+      type: true,
+      meeting: { select: { id: true, title: true } },
+    },
   });
   await recordSensitiveReads(viewer.id, "Action", actions);
   return actions;
@@ -43,6 +63,11 @@ export async function getAction(viewer: Viewer, id: string) {
     include: {
       level: true,
       status: true,
+      type: true,
+      followUps: {
+        orderBy: [{ noteDate: "desc" }, { createdAt: "desc" }],
+        include: { author: { select: { name: true } } },
+      },
       meeting: { select: { id: true, title: true } },
       replacedBy: { select: { id: true, title: true } },
       replaces: { select: { id: true, title: true } },
@@ -72,7 +97,11 @@ export async function listRetiredActions(viewer: Viewer) {
   const actions = await getDb().action.findMany({
     where: { AND: [actionWhere(viewer), { retiredAt: { not: null } }] },
     orderBy: { retiredAt: "desc" },
-    include: { level: true, status: true, meeting: { select: { id: true, title: true } } },
+    include: {
+      level: true,
+      status: true,
+      meeting: { select: { id: true, title: true } },
+    },
   });
   await recordSensitiveReads(viewer.id, "Action", actions);
   return actions;
@@ -80,7 +109,19 @@ export async function listRetiredActions(viewer: Viewer) {
 
 export type ActionChangeResult =
   | { ok: true; id?: string }
-  | { ok: false; error: "sin_permiso" | "no_existe" | "retirada" | "sin_cambios" | "estado_invalido" | "sin_estado" | "persona_invalida" | "nota_obligatoria" };
+  | {
+      ok: false;
+      error:
+        | "sin_permiso"
+        | "no_existe"
+        | "retirada"
+        | "sin_cambios"
+        | "estado_invalido"
+        | "sin_estado"
+        | "persona_invalida"
+        | "nota_obligatoria"
+        | "tipo_invalido";
+    };
 
 const day = (date: Date | null) => (date ? date.toISOString().slice(0, 10) : null);
 
@@ -97,11 +138,19 @@ export async function updateAction(viewer: Viewer, id: string, input: UpdateActi
   if (action.retiredAt) return { ok: false, error: "retirada" };
 
   const data: Prisma.ActionUncheckedUpdateInput = {};
-  const changes: { field: string; oldValue: string | null; newValue: string | null }[] = [];
+  const changes: {
+    field: string;
+    oldValue: string | null;
+    newValue: string | null;
+  }[] = [];
 
   if (input.title !== undefined && input.title !== action.title) {
     data.title = input.title;
-    changes.push({ field: "title", oldValue: action.title, newValue: input.title });
+    changes.push({
+      field: "title",
+      oldValue: action.title,
+      newValue: input.title,
+    });
   }
   if (input.ownerId !== undefined || input.ownerName !== undefined) {
     // Con persona del registro manda su nombre; sin ella queda el texto libre.
@@ -109,7 +158,11 @@ export async function updateAction(viewer: Viewer, id: string, input: UpdateActi
     if (!owner.ok) return { ok: false, error: "persona_invalida" };
     if (owner.ownerName !== action.ownerName) {
       data.ownerName = owner.ownerName;
-      changes.push({ field: "ownerName", oldValue: action.ownerName, newValue: owner.ownerName });
+      changes.push({
+        field: "ownerName",
+        oldValue: action.ownerName,
+        newValue: owner.ownerName,
+      });
     }
     if (owner.ownerId !== action.ownerId) data.ownerId = owner.ownerId;
   }
@@ -118,16 +171,73 @@ export async function updateAction(viewer: Viewer, id: string, input: UpdateActi
     data.dueDate = due;
     // La fecha de aparición sigue a la de compromiso mientras no se haya movido por separado.
     if (day(action.actionDate) === day(action.dueDate)) data.actionDate = due;
-    changes.push({ field: "dueDate", oldValue: day(action.dueDate), newValue: input.dueDate });
+    changes.push({
+      field: "dueDate",
+      oldValue: day(action.dueDate),
+      newValue: input.dueDate,
+    });
+  }
+  if (input.typeId !== undefined && input.typeId !== action.typeId) {
+    let typeName: string | null = null;
+    if (input.typeId !== null) {
+      const type = await db.actionType.findFirst({
+        where: { id: input.typeId, active: true },
+      });
+      if (!type) return { ok: false, error: "tipo_invalido" };
+      typeName = type.name;
+    }
+    const before = action.typeId
+      ? ((await db.actionType.findUnique({ where: { id: action.typeId } }))?.name ?? null)
+      : null;
+    data.typeId = input.typeId;
+    changes.push({ field: "type", oldValue: before, newValue: typeName });
+  }
+  if (input.priority !== undefined && input.priority !== action.priority) {
+    data.priority = input.priority;
+    changes.push({
+      field: "priority",
+      oldValue: action.priority,
+      newValue: input.priority,
+    });
+  }
+  if (input.repeat !== undefined && input.repeat !== action.repeat) {
+    data.repeat = input.repeat;
+    changes.push({
+      field: "repeat",
+      oldValue: action.repeat,
+      newValue: input.repeat,
+    });
+  }
+  if (input.needsScheduling !== undefined && input.needsScheduling !== action.needsScheduling) {
+    data.needsScheduling = input.needsScheduling;
+    changes.push({
+      field: "needsScheduling",
+      oldValue: String(action.needsScheduling),
+      newValue: String(input.needsScheduling),
+    });
+  }
+  if (input.actionDate !== undefined && input.actionDate !== day(action.actionDate) && data.actionDate === undefined) {
+    data.actionDate = new Date(`${input.actionDate}T12:00:00.000Z`);
+    changes.push({
+      field: "actionDate",
+      oldValue: day(action.actionDate),
+      newValue: input.actionDate,
+    });
   }
   let target = action.status;
   const statusChanged = input.statusId !== undefined && input.statusId !== action.statusId;
   if (statusChanged) {
-    const status = await db.actionStatus.findFirst({ where: { id: input.statusId, active: true } });
+    const status = await db.actionStatus.findFirst({
+      where: { id: input.statusId, active: true },
+    });
     if (!status) return { ok: false, error: "estado_invalido" };
     data.statusId = status.id;
     target = status;
-    changes.push({ field: "status", oldValue: action.status.name, newValue: status.name });
+    changes.push({
+      field: "status",
+      oldValue: action.status.name,
+      newValue: status.name,
+    });
   }
   // Los estados que piden nota (En espera, Cancelado) no se pueden fijar sin ella.
   // Una acción que ya estaba en ese estado sin nota (de antes) no obliga a ponerla al editar otra cosa.
@@ -137,20 +247,34 @@ export async function updateAction(viewer: Viewer, id: string, input: UpdateActi
       if (note === "") return { ok: false, error: "nota_obligatoria" };
       if (note !== (action.statusNote ?? "")) {
         data.statusNote = note;
-        changes.push({ field: "statusNote", oldValue: action.statusNote, newValue: note });
+        changes.push({
+          field: "statusNote",
+          oldValue: action.statusNote,
+          newValue: note,
+        });
       }
     }
   } else if (statusChanged && action.statusNote) {
     data.statusNote = null;
-    changes.push({ field: "statusNote", oldValue: action.statusNote, newValue: null });
+    changes.push({
+      field: "statusNote",
+      oldValue: action.statusNote,
+      newValue: null,
+    });
   }
   if (changes.length === 0) return { ok: false, error: "sin_cambios" };
 
   await db.action.update({ where: { id }, data });
   await db.changeLog.createMany({
-    data: changes.map((change) => ({ actionId: id, authorId: viewer.id, ...change })),
+    data: changes.map((change) => ({
+      actionId: id,
+      authorId: viewer.id,
+      ...change,
+    })),
   });
-  await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "Action", entityId: id } });
+  await db.auditLog.create({
+    data: { userId: viewer.id, kind: "CHANGE", entity: "Action", entityId: id },
+  });
   return { ok: true };
 }
 
@@ -159,7 +283,10 @@ export async function retireAction(viewer: Viewer, id: string, reason: string): 
   if (viewer.profile !== "ASSISTANT") return { ok: false, error: "sin_permiso" };
 
   const db = getDb();
-  const action = await db.action.findFirst({ where: { AND: [{ id }, actionWhere(viewer)] }, select: { id: true } });
+  const action = await db.action.findFirst({
+    where: { AND: [{ id }, actionWhere(viewer)] },
+    select: { id: true },
+  });
   if (!action) return { ok: false, error: "no_existe" };
 
   const claimed = await db.action.updateMany({
@@ -168,8 +295,18 @@ export async function retireAction(viewer: Viewer, id: string, reason: string): 
   });
   if (claimed.count === 0) return { ok: false, error: "retirada" };
 
-  await db.changeLog.create({ data: { actionId: id, authorId: viewer.id, field: "retired", oldValue: null, newValue: reason } });
-  await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "Action", entityId: id } });
+  await db.changeLog.create({
+    data: {
+      actionId: id,
+      authorId: viewer.id,
+      field: "retired",
+      oldValue: null,
+      newValue: reason,
+    },
+  });
+  await db.auditLog.create({
+    data: { userId: viewer.id, kind: "CHANGE", entity: "Action", entityId: id },
+  });
   return { ok: true };
 }
 
@@ -177,12 +314,19 @@ export async function retireAction(viewer: Viewer, id: string, reason: string): 
 export async function replaceAction(
   viewer: Viewer,
   id: string,
-  value: { title: string; ownerName: string | null; ownerId?: string | null; dueDate: string },
+  value: {
+    title: string;
+    ownerName: string | null;
+    ownerId?: string | null;
+    dueDate: string;
+  },
 ): Promise<ActionChangeResult> {
   if (viewer.profile !== "ASSISTANT") return { ok: false, error: "sin_permiso" };
 
   const db = getDb();
-  const old = await db.action.findFirst({ where: { AND: [{ id }, actionWhere(viewer)] } });
+  const old = await db.action.findFirst({
+    where: { AND: [{ id }, actionWhere(viewer)] },
+  });
   if (!old) return { ok: false, error: "no_existe" };
 
   const owner = await resolveOwner(value.ownerId, value.ownerName);
@@ -196,7 +340,10 @@ export async function replaceAction(
 
   const claimed = await db.action.updateMany({
     where: { id, retiredAt: null },
-    data: { retiredAt: new Date(), retiredReason: "Reemplazada por otra acción" },
+    data: {
+      retiredAt: new Date(),
+      retiredReason: "Reemplazada por otra acción",
+    },
   });
   if (claimed.count === 0) return { ok: false, error: "retirada" };
 
@@ -215,18 +362,74 @@ export async function replaceAction(
         createdById: viewer.id,
       },
     });
-    await db.action.update({ where: { id }, data: { replacedById: created.id } });
+    await db.action.update({
+      where: { id },
+      data: { replacedById: created.id },
+    });
     await db.changeLog.createMany({
       data: [
-        { actionId: id, authorId: viewer.id, field: "replaced", oldValue: null, newValue: created.title },
-        { actionId: created.id, authorId: viewer.id, field: "replaces", oldValue: null, newValue: old.title },
+        {
+          actionId: id,
+          authorId: viewer.id,
+          field: "replaced",
+          oldValue: null,
+          newValue: created.title,
+        },
+        {
+          actionId: created.id,
+          authorId: viewer.id,
+          field: "replaces",
+          oldValue: null,
+          newValue: old.title,
+        },
       ],
     });
-    await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "Action", entityId: id } });
+    await db.auditLog.create({
+      data: {
+        userId: viewer.id,
+        kind: "CHANGE",
+        entity: "Action",
+        entityId: id,
+      },
+    });
     return { ok: true, id: created.id };
   } catch (error) {
     // Si no se pudo crear la nueva, la anterior vuelve a quedar vigente.
-    await db.action.updateMany({ where: { id, replacedById: null }, data: { retiredAt: null, retiredReason: null } });
+    await db.action.updateMany({
+      where: { id, replacedById: null },
+      data: { retiredAt: null, retiredReason: null },
+    });
     throw error;
   }
+}
+
+// Un avance con fecha: lo puede escribir solo la asistente dueña; las cerradas también reciben avances.
+export async function addFollowUp(
+  viewer: Viewer,
+  id: string,
+  input: { body: string; noteDate?: string },
+): Promise<ActionChangeResult> {
+  if (viewer.profile !== "ASSISTANT") return { ok: false, error: "sin_permiso" };
+
+  const db = getDb();
+  const action = await db.action.findFirst({
+    where: { AND: [{ id }, actionWhere(viewer)] },
+    select: { id: true, retiredAt: true },
+  });
+  if (!action) return { ok: false, error: "no_existe" };
+  if (action.retiredAt) return { ok: false, error: "retirada" };
+
+  const noteDay = input.noteDate ?? todayInHermosillo();
+  await db.followUp.create({
+    data: {
+      actionId: id,
+      authorId: viewer.id,
+      body: input.body,
+      noteDate: new Date(`${noteDay}T12:00:00.000Z`),
+    },
+  });
+  await db.auditLog.create({
+    data: { userId: viewer.id, kind: "CHANGE", entity: "Action", entityId: id },
+  });
+  return { ok: true };
 }

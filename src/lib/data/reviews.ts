@@ -1,19 +1,44 @@
 import { Prisma } from "../../generated/prisma/client";
-import { meetingWhere, type Viewer } from "../access";
+import { actionWhere, meetingWhere, type Viewer } from "../access";
+import { findSimilar } from "../similar-actions";
 import { getDb } from "../db";
 import { resolveOwner } from "./owner";
 import { actionValueSchema, type Decision, textValueSchema } from "../review-schemas";
 
+export type SimilarAction = {
+  id: string;
+  title: string;
+  statusName: string;
+  isClosed: boolean;
+};
+
 export type DecideResult =
-  | { ok: true; actionId?: string }
+  | { ok: true; actionId?: string; followUpActionId?: string }
+  | { ok: false; error: "posible_duplicado"; similar: SimilarAction[] }
   | {
       ok: false;
-      error: "sin_permiso" | "no_existe" | "ya_decidido" | "valor_invalido" | "fecha_obligatoria" | "sin_estado" | "persona_invalida";
+      error:
+        | "sin_permiso"
+        | "no_existe"
+        | "ya_decidido"
+        | "valor_invalido"
+        | "fecha_obligatoria"
+        | "sin_estado"
+        | "persona_invalida";
     };
 
-type Card = { summary?: string; decisions?: string[]; risks?: string[]; nextSteps?: string[] };
+type Card = {
+  summary?: string;
+  decisions?: string[];
+  risks?: string[];
+  nextSteps?: string[];
+};
 
-const cardKey = { DECISION: "decisions", RISK: "risks", NEXT_STEP: "nextSteps" } as const;
+const cardKey = {
+  DECISION: "decisions",
+  RISK: "risks",
+  NEXT_STEP: "nextSteps",
+} as const;
 
 // La IA propone y una persona decide. Aprobar una acción crea la acción oficial (con fecha obligatoria);
 // lo demás pasa a la ficha oficial de la reunión. Una propuesta ya decidida no se vuelve a decidir.
@@ -23,7 +48,9 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
   const db = getDb();
   const item = await db.reviewItem.findFirst({
     where: { id: itemId, meeting: meetingWhere(viewer) },
-    include: { meeting: { select: { id: true, levelId: true, officialCard: true } } },
+    include: {
+      meeting: { select: { id: true, levelId: true, officialCard: true } },
+    },
   });
   if (!item) return { ok: false, error: "no_existe" };
   if (item.status !== "PENDING") return { ok: false, error: "ya_decidido" };
@@ -34,10 +61,21 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
   if (decision.decision === "reject") {
     const claimed = await db.reviewItem.updateMany({
       where: { id: itemId, status: "PENDING" },
-      data: { status: "REJECTED", rejectionReason: decision.reason, ...decided },
+      data: {
+        status: "REJECTED",
+        rejectionReason: decision.reason,
+        ...decided,
+      },
     });
     if (claimed.count === 0) return { ok: false, error: "ya_decidido" };
-    await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "ReviewItem", entityId: itemId } });
+    await db.auditLog.create({
+      data: {
+        userId: viewer.id,
+        kind: "CHANGE",
+        entity: "ReviewItem",
+        entityId: itemId,
+      },
+    });
     return { ok: true };
   }
 
@@ -45,7 +83,9 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
   const finalValue = decision.value ?? (item.aiValue as Record<string, unknown>);
   // Elegir a la persona del registro no cuenta como edición por sí solo.
   const withoutOwnerId = (value: Record<string, unknown>) => JSON.stringify({ ...value, ownerId: undefined });
-  const edited = decision.value !== undefined && withoutOwnerId(decision.value) !== withoutOwnerId(item.aiValue as Record<string, unknown>);
+  const edited =
+    decision.value !== undefined &&
+    withoutOwnerId(decision.value) !== withoutOwnerId(item.aiValue as Record<string, unknown>);
 
   let actionValue: ReturnType<typeof actionValueSchema.parse> | undefined;
   let text: string | undefined;
@@ -53,19 +93,67 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
     const parsed = actionValueSchema.safeParse(finalValue);
     if (!parsed.success) {
       const missingDate = parsed.error.issues.some((i) => i.path[0] === "dueDate");
-      return { ok: false, error: missingDate ? "fecha_obligatoria" : "valor_invalido" };
+      return {
+        ok: false,
+        error: missingDate ? "fecha_obligatoria" : "valor_invalido",
+      };
     }
     const owner = await resolveOwner(parsed.data.ownerId, parsed.data.ownerName);
     if (!owner.ok) return { ok: false, error: "persona_invalida" };
-    actionValue = { ...parsed.data, ownerId: owner.ownerId, ownerName: owner.ownerName };
+    actionValue = {
+      ...parsed.data,
+      ownerId: owner.ownerId,
+      ownerName: owner.ownerName,
+    };
   } else {
     const parsed = textValueSchema.safeParse(finalValue);
     if (!parsed.success) return { ok: false, error: "valor_invalido" };
     text = parsed.data.text;
   }
 
-  let statusId: string | undefined;
+  // Una acción repetida de otra junta se suma como avance de la existente (abierta o cerrada);
+  // si parece repetida y la persona no lo resolvió, se le pregunta antes de crear otra.
+  let appendTo: { id: string; levelId: string } | undefined;
   if (actionValue) {
+    const resolution = decision.resolution;
+    if (resolution?.mode === "append") {
+      const target = await db.action.findFirst({
+        where: {
+          AND: [{ id: resolution.actionId }, actionWhere(viewer), { retiredAt: null }],
+        },
+        select: { id: true, levelId: true },
+      });
+      if (!target) return { ok: false, error: "no_existe" };
+      appendTo = target;
+    } else if (!resolution) {
+      const candidates = await db.action.findMany({
+        where: { AND: [actionWhere(viewer), { retiredAt: null }] },
+        orderBy: { updatedAt: "desc" },
+        take: 400,
+        select: {
+          id: true,
+          title: true,
+          status: { select: { name: true, isClosed: true } },
+        },
+      });
+      const similar = findSimilar(actionValue.title, candidates);
+      if (similar.length > 0) {
+        return {
+          ok: false,
+          error: "posible_duplicado",
+          similar: similar.map((a) => ({
+            id: a.id,
+            title: a.title,
+            statusName: a.status.name,
+            isClosed: a.status.isClosed,
+          })),
+        };
+      }
+    }
+  }
+
+  let statusId: string | undefined;
+  if (actionValue && !appendTo) {
     const status = await db.actionStatus.findFirst({
       where: { active: true },
       orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
@@ -80,13 +168,48 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
     data: {
       status: "APPROVED",
       ...decided,
-      ...(edited ? { editedValue: (actionValue ?? { text }) as object, editedById: viewer.id, editedAt: now } : {}),
+      ...(edited
+        ? {
+            editedValue: (actionValue ?? { text }) as object,
+            editedById: viewer.id,
+            editedAt: now,
+          }
+        : {}),
     },
   });
   if (claimed.count === 0) return { ok: false, error: "ya_decidido" };
 
   try {
     let actionId: string | undefined;
+    if (actionValue && appendTo) {
+      const owner = actionValue.ownerName ? ` Responsable: ${actionValue.ownerName}.` : "";
+      await db.followUp.create({
+        data: {
+          actionId: appendTo.id,
+          authorId: viewer.id,
+          body: `Mencionada de nuevo en la reunión: «${actionValue.title}».${owner} Compromiso: ${actionValue.dueDate}.`,
+          noteDate: new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00.000Z`),
+          meetingId: item.meeting.id,
+        },
+      });
+      await db.auditLog.create({
+        data: {
+          userId: viewer.id,
+          kind: "CHANGE",
+          entity: "Action",
+          entityId: appendTo.id,
+        },
+      });
+      await db.auditLog.create({
+        data: {
+          userId: viewer.id,
+          kind: "CHANGE",
+          entity: "ReviewItem",
+          entityId: itemId,
+        },
+      });
+      return { ok: true, followUpActionId: appendTo.id };
+    }
     if (actionValue && statusId) {
       const due = new Date(`${actionValue.dueDate}T12:00:00.000Z`);
       const action = await db.action.create({
@@ -112,15 +235,32 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
         const key = cardKey[item.kind as keyof typeof cardKey];
         next[key] = [...(card[key] ?? []), text];
       }
-      await db.meeting.update({ where: { id: item.meeting.id }, data: { officialCard: next } });
+      await db.meeting.update({
+        where: { id: item.meeting.id },
+        data: { officialCard: next },
+      });
     }
-    await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "ReviewItem", entityId: itemId } });
+    await db.auditLog.create({
+      data: {
+        userId: viewer.id,
+        kind: "CHANGE",
+        entity: "ReviewItem",
+        entityId: itemId,
+      },
+    });
     return { ok: true, actionId };
   } catch (error) {
     // Si algo falla después de tomar la decisión, la propuesta vuelve a quedar pendiente.
     await db.reviewItem.updateMany({
       where: { id: itemId, status: "APPROVED", actionId: null },
-      data: { status: "PENDING", decidedById: null, decidedAt: null, editedValue: Prisma.DbNull, editedById: null, editedAt: null },
+      data: {
+        status: "PENDING",
+        decidedById: null,
+        decidedAt: null,
+        editedValue: Prisma.DbNull,
+        editedById: null,
+        editedAt: null,
+      },
     });
     throw error;
   }

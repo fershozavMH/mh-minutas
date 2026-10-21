@@ -19,9 +19,16 @@ type Status = {
   active: boolean;
 };
 
+type ActionType = {
+  id: string;
+  name: string;
+  position: number;
+  active: boolean;
+};
+
 const errors: Record<string, string> = {
   nombre_o_rango_repetido: "Ya existe un nivel con ese nombre o ese rango.",
-  nombre_repetido: "Ya existe un estado con ese nombre.",
+  nombre_repetido: "Ya existe uno con ese nombre.",
   debe_quedar_un_estado_abierto:
     "Debe quedar al menos un estado abierto activo.",
   datos_invalidos: "Revisa el nombre y el número.",
@@ -201,12 +208,83 @@ function StatusRow({
   );
 }
 
+function TypeRow({
+  type,
+  run,
+  busy,
+}: {
+  type: ActionType;
+  run: (p: Promise<string | null>) => void;
+  busy: boolean;
+}) {
+  const [name, setName] = useState(type.name);
+  const [position, setPosition] = useState(String(type.position));
+  return (
+    <tr>
+      <td>
+        <input
+          aria-label={`Orden de ${type.name}`}
+          type="number"
+          min={1}
+          value={position}
+          onChange={(e) => setPosition(e.target.value)}
+        />
+      </td>
+      <td>
+        <input
+          aria-label={`Nombre de ${type.name}`}
+          value={name}
+          maxLength={60}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </td>
+      <td>{type.active ? "Activo" : "Desactivado"}</td>
+      <td>
+        <button
+          type="button"
+          disabled={
+            busy || (name === type.name && position === String(type.position))
+          }
+          onClick={() =>
+            run(
+              send("/api/admin/types", "PATCH", {
+                id: type.id,
+                name,
+                position: Number(position),
+              }),
+            )
+          }
+        >
+          Guardar
+        </button>{" "}
+        <button
+          type="button"
+          className="link-button"
+          disabled={busy}
+          onClick={() =>
+            run(
+              send("/api/admin/types", "PATCH", {
+                id: type.id,
+                active: !type.active,
+              }),
+            )
+          }
+        >
+          {type.active ? "Desactivar" : "Activar"}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 export function CatalogManager({
   levels,
   statuses,
+  types,
 }: {
   levels: Level[];
   statuses: Status[];
+  types: ActionType[];
 }) {
   const [message, setMessage] = useState("");
   const { busy, setBusy, refresh } = useBusy();
@@ -248,6 +326,21 @@ export function CatalogManager({
         position: Number(form.get("position")),
         isClosed: form.get("isClosed") === "on",
         requiresNote: form.get("requiresNote") === "on",
+      }).then((error) => {
+        if (!error) formElement.reset();
+        return error;
+      }),
+    );
+  }
+
+  function addType(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    run(
+      send("/api/admin/types", "POST", {
+        name: form.get("name"),
+        position: Number(form.get("position")),
       }).then((error) => {
         if (!error) formElement.reset();
         return error;
@@ -361,6 +454,48 @@ export function CatalogManager({
         </div>
         <button type="submit" disabled={busy} aria-busy={busy}>
           {busy ? "Guardando…" : "Agregar estado"}
+        </button>
+      </form>
+
+      <h2>Tipos de pendiente</h2>
+      <p className="hint">
+        El tipo dice quién entrega y cuál es el papel de quien da seguimiento
+        (por ejemplo, «Recordar a mi jefe/a»). Los iniciales vienen del modelo
+        de referencia y se pueden renombrar.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Orden</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Estado</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {types.map((t) => (
+            <TypeRow
+              key={`${t.id}-${t.name}-${t.position}`}
+              type={t}
+              run={run}
+              busy={busy}
+            />
+          ))}
+        </tbody>
+      </table>
+      <form onSubmit={addType}>
+        <div className="field">
+          <label>
+            Nombre <input name="name" required maxLength={60} />
+          </label>
+        </div>
+        <div className="field">
+          <label>
+            Orden <input name="position" type="number" min={1} required />
+          </label>
+        </div>
+        <button type="submit" disabled={busy} aria-busy={busy}>
+          {busy ? "Guardando…" : "Agregar tipo"}
         </button>
       </form>
     </>

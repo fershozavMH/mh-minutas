@@ -3,7 +3,14 @@ import { addDays, parseActionFilters, todayInHermosillo } from "./action-filters
 
 describe("parseActionFilters", () => {
   it("lee los filtros y limpia espacios", () => {
-    expect(parseActionFilters({ status: "s1", owner: "  Daray ", meeting: "m1", due: "overdue" })).toEqual({
+    expect(
+      parseActionFilters({
+        status: "s1",
+        owner: "  Daray ",
+        meeting: "m1",
+        due: "overdue",
+      }),
+    ).toEqual({
       statusId: "s1",
       owner: "Daray",
       meetingId: "m1",
@@ -17,7 +24,9 @@ describe("parseActionFilters", () => {
   });
 
   it("si un parámetro viene repetido usa el primero", () => {
-    expect(parseActionFilters({ owner: ["Ana", "Luis"] })).toEqual({ owner: "Ana" });
+    expect(parseActionFilters({ owner: ["Ana", "Luis"] })).toEqual({
+      owner: "Ana",
+    });
   });
 });
 
@@ -38,5 +47,16 @@ describe("cerradas", () => {
   it("closed=1 pide ver todas; otro valor se ignora", () => {
     expect(parseActionFilters({ closed: "1" })).toEqual({ showClosed: true });
     expect(parseActionFilters({ closed: "0" })).toEqual({});
+  });
+});
+
+describe("filtros de tipo, urgentes y lo que ya toca", () => {
+  it("se leen de la dirección y se ignoran valores raros", () => {
+    expect(parseActionFilters({ type: "t1", urgent: "1", appeared: "1" })).toEqual({
+      typeId: "t1",
+      urgent: true,
+      appeared: true,
+    });
+    expect(parseActionFilters({ urgent: "si", appeared: "0" })).toEqual({});
   });
 });

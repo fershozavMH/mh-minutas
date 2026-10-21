@@ -126,6 +126,7 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
       where: { meeting: { createdById: { in: userIds } } },
     });
     await db.source.deleteMany({ where: { uploadedById: { in: userIds } } });
+    await db.followUp.deleteMany({ where: { authorId: { in: userIds } } });
     await db.action.deleteMany({ where: { createdById: { in: userIds } } });
     await db.meeting.deleteMany({ where: { createdById: { in: userIds } } });
     await db.user.deleteMany({
@@ -325,11 +326,9 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
       nextSteps: ["N1"],
       actions: [{ title: "A1", ownerName: null, dueDate: null }],
     };
-    const create = vi
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: "text", text: JSON.stringify(proposal) }],
-      });
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: JSON.stringify(proposal) }],
+    });
     const client = {
       messages: { create },
     } as unknown as import("../ai/propose").AiClient;
@@ -352,7 +351,10 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     expect(items.every((i) => i.status === "PENDING")).toBe(true);
     expect(
       await requestProposal(viewers.a2, ids.m3, sourceId, { client }),
-    ).toEqual({ ok: false, error: "ya_propuesto" });
+    ).toEqual({
+      ok: false,
+      error: "ya_propuesto",
+    });
     expect(create).toHaveBeenCalledTimes(1);
 
     // Nivel sensible: se corta antes de tocar a la IA.
@@ -363,7 +365,10 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     const sensitiveId = sensitive.ok ? sensitive.id : "";
     expect(
       await requestProposal(viewers.a1, ids.m2, sensitiveId, { client }),
-    ).toEqual({ ok: false, error: "nivel_sensible" });
+    ).toEqual({
+      ok: false,
+      error: "nivel_sensible",
+    });
     expect(create).toHaveBeenCalledTimes(1);
     expect(
       await db.reviewItem.count({ where: { sourceId: sensitiveId } }),
@@ -380,10 +385,16 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     ).toEqual({ ok: false, error: "no_existe" });
     expect(
       await requestProposal(viewers.d2, ids.m3, sourceId, { client }),
-    ).toEqual({ ok: false, error: "sin_permiso" });
+    ).toEqual({
+      ok: false,
+      error: "sin_permiso",
+    });
     expect(
       await requestProposal(viewers.admin, ids.m3, sourceId, { client }),
-    ).toEqual({ ok: false, error: "sin_permiso" });
+    ).toEqual({
+      ok: false,
+      error: "sin_permiso",
+    });
   });
   it("un nivel sensible no llega a la IA: ni cliente, ni red, ni con clave configurada", async () => {
     const { addSource } = await import("./sources");
@@ -432,18 +443,30 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     // Permisos
     expect(
       await decideReview(viewers.d2, action.id, { decision: "approve" }),
-    ).toEqual({ ok: false, error: "sin_permiso" });
+    ).toEqual({
+      ok: false,
+      error: "sin_permiso",
+    });
     expect(
       await decideReview(viewers.admin, action.id, { decision: "approve" }),
-    ).toEqual({ ok: false, error: "sin_permiso" });
+    ).toEqual({
+      ok: false,
+      error: "sin_permiso",
+    });
     expect(
       await decideReview(viewers.a1, action.id, { decision: "approve" }),
-    ).toEqual({ ok: false, error: "no_existe" });
+    ).toEqual({
+      ok: false,
+      error: "no_existe",
+    });
 
     // Sin fecha no hay acción oficial
     expect(
       await decideReview(viewers.a2, action.id, { decision: "approve" }),
-    ).toEqual({ ok: false, error: "fecha_obligatoria" });
+    ).toEqual({
+      ok: false,
+      error: "fecha_obligatoria",
+    });
     expect(
       await db.action.count({
         where: { createdById: ids.a2, title: "Enviar accesos" },
@@ -559,13 +582,22 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     // Permisos: otra asistente no la ve, el directivo y Administración no editan
     expect(
       await api.updateAction(viewers.a1, a.id, { dueDate: "2026-10-23" }),
-    ).toEqual({ ok: false, error: "no_existe" });
+    ).toEqual({
+      ok: false,
+      error: "no_existe",
+    });
     expect(
       await api.updateAction(viewers.d2, a.id, { dueDate: "2026-10-23" }),
-    ).toEqual({ ok: false, error: "sin_permiso" });
+    ).toEqual({
+      ok: false,
+      error: "sin_permiso",
+    });
     expect(
       await api.updateAction(viewers.admin, a.id, { dueDate: "2026-10-23" }),
-    ).toEqual({ ok: false, error: "sin_permiso" });
+    ).toEqual({
+      ok: false,
+      error: "sin_permiso",
+    });
 
     // Cambiar la fecha y el estado guarda autor y valor anterior
     expect(
@@ -589,10 +621,16 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     ]);
     expect(
       await api.updateAction(viewers.a2, a.id, { dueDate: "2026-10-23" }),
-    ).toEqual({ ok: false, error: "sin_cambios" });
+    ).toEqual({
+      ok: false,
+      error: "sin_cambios",
+    });
     expect(
       await api.updateAction(viewers.a2, a.id, { statusId: "no-existe" }),
-    ).toEqual({ ok: false, error: "estado_invalido" });
+    ).toEqual({
+      ok: false,
+      error: "estado_invalido",
+    });
 
     // Reemplazar: la anterior se retira y apunta a la nueva
     const replaced = await api.replaceAction(viewers.a2, a.id, {
@@ -676,7 +714,10 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
 
     expect(
       await api.updateAction(viewers.a2, a.id, { statusId: waiting.id }),
-    ).toEqual({ ok: false, error: "nota_obligatoria" });
+    ).toEqual({
+      ok: false,
+      error: "nota_obligatoria",
+    });
     expect(
       await api.updateAction(viewers.a2, a.id, {
         statusId: waiting.id,
@@ -743,20 +784,35 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     // Bajarlo de nuevo no se permite.
     expect(
       await lists.updateMeeting(viewers.a1, mine.id, { levelId: ids.low }),
-    ).toEqual({ ok: false, error: "solo_subir_nivel" });
+    ).toEqual({
+      ok: false,
+      error: "solo_subir_nivel",
+    });
     // a2 no llega al nivel alto; otra asistente no ve la reunión; directivo y Administración no cambian nada.
     expect(
       await lists.updateMeeting(viewers.a2, other.id, { levelId: ids.high }),
-    ).toEqual({ ok: false, error: "nivel_no_permitido" });
+    ).toEqual({
+      ok: false,
+      error: "nivel_no_permitido",
+    });
     expect(
       await lists.updateMeeting(viewers.a2, mine.id, { levelId: ids.high }),
-    ).toEqual({ ok: false, error: "no_existe" });
+    ).toEqual({
+      ok: false,
+      error: "no_existe",
+    });
     expect(
       await lists.updateMeeting(viewers.d1, mine.id, { levelId: ids.high }),
-    ).toEqual({ ok: false, error: "sin_permiso" });
+    ).toEqual({
+      ok: false,
+      error: "sin_permiso",
+    });
     expect(
       await lists.updateMeeting(viewers.admin, mine.id, { levelId: ids.high }),
-    ).toEqual({ ok: false, error: "sin_permiso" });
+    ).toEqual({
+      ok: false,
+      error: "sin_permiso",
+    });
   });
   it("un texto que parece sensible no va a la IA sin confirmación, y la confirmación queda en la auditoría", async () => {
     const { addSource } = await import("./sources");
@@ -781,11 +837,9 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
       nextSteps: [],
       actions: [],
     };
-    const create = vi
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: "text", text: JSON.stringify(proposal) }],
-      });
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: JSON.stringify(proposal) }],
+    });
     const client = {
       messages: { create },
     } as unknown as import("../ai/propose").AiClient;
@@ -887,7 +941,10 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     const personId = created.ok ? created.id : "";
     expect(
       await people.createPerson(viewers.admin, { name: `${run} Otra`, email }),
-    ).toEqual({ ok: false, error: "correo_repetido" });
+    ).toEqual({
+      ok: false,
+      error: "correo_repetido",
+    });
     // Sin correo se puede, y dos personas sin correo no chocan
     expect(
       (
@@ -927,7 +984,10 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     });
     expect(
       await api.updateAction(viewers.a2, action.id, { ownerId: "no-existe" }),
-    ).toEqual({ ok: false, error: "persona_invalida" });
+    ).toEqual({
+      ok: false,
+      error: "persona_invalida",
+    });
 
     // Cambiar el nombre en el registro actualiza el de sus acciones
     expect(
@@ -973,7 +1033,10 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     });
     expect(
       await api.updateAction(viewers.a2, other.id, { ownerId: personId }),
-    ).toEqual({ ok: false, error: "persona_invalida" });
+    ).toEqual({
+      ok: false,
+      error: "persona_invalida",
+    });
     expect(
       await api.updateAction(viewers.a2, action.id, {
         title: `${run}-con-persona-2`,
@@ -996,6 +1059,195 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     });
     await db.action.deleteMany({
       where: { id: { in: [action.id, other.id] } },
+    });
+  });
+  it("acción repetida: se avisa, se suma como avance (aunque esté cerrada) y no se duplica", async () => {
+    const { decideReview } = await import("./reviews");
+    const title = `${run} cotizar grua telescopica proveedor`;
+    const closed = await db.actionStatus.create({
+      data: { name: `${run}-cerrada`, position: 2, isClosed: true },
+    });
+    const existing = await db.action.create({
+      data: {
+        title,
+        dueDate: new Date("2026-10-20T12:00:00.000Z"),
+        statusId: closed.id,
+        levelId: ids.low,
+        meetingId: ids.m3,
+        createdById: ids.a2,
+      },
+    });
+    const item = await db.reviewItem.create({
+      data: {
+        meetingId: ids.m3,
+        kind: "ACTION",
+        aiValue: {
+          title: `Cotizar grúa telescópica con el proveedor ${run}`,
+          ownerName: "Daray",
+          dueDate: "2026-10-30",
+        },
+      },
+    });
+
+    // Sin resolver: pregunta y no crea nada
+    const asked = await decideReview(viewers.a2, item.id, {
+      decision: "approve",
+    });
+    expect(asked).toMatchObject({ ok: false, error: "posible_duplicado" });
+    expect(
+      await db.action.count({
+        where: { title: { contains: "grúa telescópica" }, createdById: ids.a2 },
+      }),
+    ).toBe(0);
+    expect(
+      (await db.reviewItem.findUnique({ where: { id: item.id } }))?.status,
+    ).toBe("PENDING");
+
+    // Quien no ve la acción no puede sumarle un avance
+    expect(
+      await decideReview(viewers.a1, item.id, {
+        decision: "approve",
+        resolution: { mode: "append", actionId: existing.id },
+      }),
+    ).toEqual({ ok: false, error: "no_existe" });
+
+    // Sumar como avance: la cerrada sigue cerrada y queda el avance con fecha
+    const done = await decideReview(viewers.a2, item.id, {
+      decision: "approve",
+      resolution: { mode: "append", actionId: existing.id },
+    });
+    expect(done).toEqual({ ok: true, followUpActionId: existing.id });
+    const after = await db.action.findUnique({
+      where: { id: existing.id },
+      include: { followUps: true },
+    });
+    expect(after?.statusId).toBe(closed.id);
+    expect(after?.followUps).toHaveLength(1);
+    expect(after?.followUps[0].meetingId).toBe(ids.m3);
+    expect(
+      await decideReview(viewers.a2, item.id, { decision: "approve" }),
+    ).toEqual({
+      ok: false,
+      error: "ya_decidido",
+    });
+
+    // «Es distinta»: crea una acción nueva
+    const other = await db.reviewItem.create({
+      data: {
+        meetingId: ids.m3,
+        kind: "ACTION",
+        aiValue: { title, ownerName: null, dueDate: "2026-11-02" },
+      },
+    });
+    const created = await decideReview(viewers.a2, other.id, {
+      decision: "approve",
+      resolution: { mode: "new" },
+    });
+    expect(created.ok && created.actionId).toBeTruthy();
+
+    await db.followUp.deleteMany({ where: { actionId: existing.id } });
+    await db.reviewItem.deleteMany({
+      where: { id: { in: [item.id, other.id] } },
+    });
+    await db.changeLog.deleteMany({
+      where: {
+        actionId: {
+          in: [
+            existing.id,
+            ...(created.ok && created.actionId ? [created.actionId] : []),
+          ],
+        },
+      },
+    });
+    await db.action.deleteMany({
+      where: {
+        id: {
+          in: [
+            existing.id,
+            ...(created.ok && created.actionId ? [created.actionId] : []),
+          ],
+        },
+      },
+    });
+    await db.actionStatus.delete({ where: { id: closed.id } });
+  });
+  it("avances y tipo: solo la dueña los escribe, quedan con fecha y el cambio de tipo guarda el valor anterior", async () => {
+    const status = await db.actionStatus.findFirstOrThrow({
+      where: { id: ids.status },
+    });
+    const type = await db.actionType.create({
+      data: { name: `${run}-tipo`, position: 99 },
+    });
+    const inactive = await db.actionType.create({
+      data: { name: `${run}-tipo-off`, position: 98, active: false },
+    });
+    const action = await db.action.create({
+      data: {
+        title: `${run} avance`,
+        dueDate: new Date("2026-10-30T12:00:00.000Z"),
+        statusId: status.id,
+        levelId: ids.low,
+        meetingId: ids.m3,
+        createdById: ids.a2,
+      },
+    });
+
+    expect(
+      await actionsApi.addFollowUp(viewers.d2, action.id, { body: "x" }),
+    ).toEqual({ ok: false, error: "sin_permiso" });
+    expect(
+      await actionsApi.addFollowUp(viewers.a1, action.id, { body: "x" }),
+    ).toEqual({ ok: false, error: "no_existe" });
+    expect(
+      await actionsApi.addFollowUp(viewers.a2, action.id, {
+        body: "Le escribí al proveedor",
+        noteDate: "2026-10-21",
+      }),
+    ).toEqual({ ok: true });
+    const stored = await db.followUp.findMany({
+      where: { actionId: action.id },
+    });
+    expect(stored).toHaveLength(1);
+    expect(stored[0].noteDate.toISOString().slice(0, 10)).toBe("2026-10-21");
+
+    expect(
+      await actionsApi.updateAction(viewers.a2, action.id, {
+        typeId: inactive.id,
+      }),
+    ).toEqual({ ok: false, error: "tipo_invalido" });
+    expect(
+      await actionsApi.updateAction(viewers.a2, action.id, {
+        typeId: type.id,
+        priority: "URGENT",
+        repeat: "WEEKLY",
+        needsScheduling: true,
+      }),
+    ).toEqual({ ok: true });
+    expect(
+      await actionsApi.updateAction(viewers.a2, action.id, { typeId: null }),
+    ).toEqual({ ok: true });
+    const typeChanges = await db.changeLog.findMany({
+      where: { actionId: action.id, field: "type" },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(typeChanges.map((c) => [c.oldValue, c.newValue])).toEqual([
+      [null, type.name],
+      [type.name, null],
+    ]);
+    expect(
+      await db.action.findUnique({ where: { id: action.id } }),
+    ).toMatchObject({
+      priority: "URGENT",
+      repeat: "WEEKLY",
+      needsScheduling: true,
+      typeId: null,
+    });
+
+    await db.followUp.deleteMany({ where: { actionId: action.id } });
+    await db.changeLog.deleteMany({ where: { actionId: action.id } });
+    await db.action.delete({ where: { id: action.id } });
+    await db.actionType.deleteMany({
+      where: { id: { in: [type.id, inactive.id] } },
     });
   });
 });

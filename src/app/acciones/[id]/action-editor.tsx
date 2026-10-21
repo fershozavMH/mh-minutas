@@ -13,6 +13,12 @@ type Props = {
   dueDate: string;
   statusId: string;
   statusNote: string;
+  typeId: string;
+  priority: "NORMAL" | "URGENT";
+  repeat: "NONE" | "WEEKLY" | "MONTHLY";
+  needsScheduling: boolean;
+  actionDate: string;
+  types: { id: string; name: string }[];
   statuses: { id: string; name: string; requiresNote: boolean }[];
   people: PersonOption[];
 };
@@ -26,6 +32,7 @@ const errors: Record<string, string> = {
   estado_invalido: "Ese estado ya no está disponible.",
   no_existe: "Esta acción ya no está disponible.",
   sin_permiso: "Tu perfil no puede cambiar acciones.",
+  tipo_invalido: "Ese tipo ya no está disponible.",
   sin_estado: "No hay estados activos; avisa a Administración.",
   persona_invalida: "Esa persona ya no está disponible.",
   sin_sesion: "Tu sesión terminó; vuelve a entrar.",
@@ -37,18 +44,34 @@ async function call(url: string, method: string, body: unknown) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   }).catch(() => null);
-  if (response?.ok) return { ok: true as const, data: (await response.json()) as { id?: string | null } };
+  if (response?.ok)
+    return {
+      ok: true as const,
+      data: (await response.json()) as { id?: string | null },
+    };
   const data = (await response?.json().catch(() => ({}))) as { error?: string } | undefined;
-  return { ok: false as const, message: errors[data?.error ?? ""] ?? "No se pudo guardar." };
+  return {
+    ok: false as const,
+    message: errors[data?.error ?? ""] ?? "No se pudo guardar.",
+  };
 }
 
 export function ActionEditor(props: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(props.title);
-  const [owner, setOwner] = useState({ ownerId: props.ownerId, ownerName: props.ownerName });
+  const [owner, setOwner] = useState({
+    ownerId: props.ownerId,
+    ownerName: props.ownerName,
+  });
   const [due, setDue] = useState(props.dueDate);
   const [statusId, setStatusId] = useState(props.statusId);
   const [statusNote, setStatusNote] = useState(props.statusNote);
+  const [typeId, setTypeId] = useState(props.typeId);
+  const [priority, setPriority] = useState(props.priority);
+  const [repeat, setRepeat] = useState(props.repeat);
+  const [needsScheduling, setNeedsScheduling] = useState(props.needsScheduling);
+  const [actionDate, setActionDate] = useState(props.actionDate);
+  const [followBody, setFollowBody] = useState("");
   const needsNote = props.statuses.find((s) => s.id === statusId)?.requiresNote ?? false;
   const [mode, setMode] = useState<"retire" | "replace" | null>(null);
   const [reason, setReason] = useState("");
@@ -70,16 +93,35 @@ export function ActionEditor(props: Props) {
 
   const save = () =>
     run(
-      () => call(`/api/actions/${props.id}`, "PATCH", {
+      () =>
+        call(`/api/actions/${props.id}`, "PATCH", {
           title,
           ownerId: owner.ownerId || null,
           ownerName: owner.ownerId ? null : owner.ownerName || null,
           dueDate: due || "",
           statusId,
+          typeId: typeId || null,
+          priority,
+          repeat,
+          needsScheduling,
+          ...(actionDate ? { actionDate } : {}),
           ...(needsNote ? { statusNote } : {}),
         }),
       () => {
         setMessage("Cambios guardados.");
+        refresh();
+      },
+    );
+
+  const addFollowUp = () =>
+    run(
+      () =>
+        call(`/api/actions/${props.id}/followups`, "POST", {
+          body: followBody,
+        }),
+      () => {
+        setFollowBody("");
+        setMessage("Avance agregado.");
         refresh();
       },
     );
@@ -92,12 +134,13 @@ export function ActionEditor(props: Props) {
 
   const replace = () =>
     run(
-      () => call(`/api/actions/${props.id}/replace`, "POST", {
-        title: newTitle,
-        ownerId: newOwner.ownerId || null,
-        ownerName: newOwner.ownerId ? null : newOwner.ownerName || null,
-        dueDate: newDue || null,
-      }),
+      () =>
+        call(`/api/actions/${props.id}/replace`, "POST", {
+          title: newTitle,
+          ownerId: newOwner.ownerId || null,
+          ownerName: newOwner.ownerId ? null : newOwner.ownerName || null,
+          dueDate: newDue || null,
+        }),
       (id) => router.push(id ? `/acciones/${id}` : "/acciones"),
       true,
     );
@@ -129,6 +172,50 @@ export function ActionEditor(props: Props) {
               </option>
             ))}
           </select>
+        </label>
+      </div>
+      <div className="field">
+        <label>
+          Tipo de pendiente
+          <select value={typeId} onChange={(e) => setTypeId(e.target.value)}>
+            <option value="">Sin tipo</option>
+            {props.types.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="field">
+        <label>
+          Prioridad
+          <select value={priority} onChange={(e) => setPriority(e.target.value as Props["priority"])}>
+            <option value="NORMAL">Normal</option>
+            <option value="URGENT">Urgente</option>
+          </select>
+        </label>
+      </div>
+      <div className="field">
+        <label>
+          Se repite
+          <select value={repeat} onChange={(e) => setRepeat(e.target.value as Props["repeat"])}>
+            <option value="NONE">No</option>
+            <option value="WEEKLY">Cada semana</option>
+            <option value="MONTHLY">Cada mes</option>
+          </select>
+        </label>
+      </div>
+      <div className="field">
+        <label>
+          Aparece en la vista desde{" "}
+          <input type="date" value={actionDate} onChange={(e) => setActionDate(e.target.value)} />
+        </label>
+      </div>
+      <div className="field">
+        <label>
+          <input type="checkbox" checked={needsScheduling} onChange={(e) => setNeedsScheduling(e.target.checked)} /> Hay
+          que agendarla
         </label>
       </div>
       {needsNote && (
@@ -177,14 +264,30 @@ export function ActionEditor(props: Props) {
           </div>
           <div className="field">
             <label>
-              Fecha de compromiso <input type="date" value={newDue} onChange={(e) => setNewDue(e.target.value)} required />
+              Fecha de compromiso{" "}
+              <input type="date" value={newDue} onChange={(e) => setNewDue(e.target.value)} required />
             </label>
           </div>
-          <button type="button" disabled={busy || newTitle.trim() === "" || newDue === ""} aria-busy={busy} onClick={replace}>
+          <button
+            type="button"
+            disabled={busy || newTitle.trim() === "" || newDue === ""}
+            aria-busy={busy}
+            onClick={replace}
+          >
             {busy ? "Reemplazando…" : "Confirmar reemplazo"}
           </button>
         </div>
       )}
+      <h2>Agregar un avance</h2>
+      <div className="field">
+        <label>
+          Avance (se guarda con la fecha de hoy)
+          <textarea rows={2} maxLength={1000} value={followBody} onChange={(e) => setFollowBody(e.target.value)} />
+        </label>
+        <button type="button" disabled={busy || followBody.trim() === ""} aria-busy={busy} onClick={addFollowUp}>
+          {busy ? "Guardando…" : "Agregar avance"}
+        </button>
+      </div>
       {message && <p role="status">{message}</p>}
     </div>
   );

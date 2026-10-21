@@ -10,21 +10,35 @@ type Values = {
   meeting: string;
   owner: string;
   closed: string;
+  type: string;
+  urgent: string;
+  appeared: string;
 };
 
 const keyOf = (v: Values) =>
-  JSON.stringify([v.status, v.due, v.meeting, v.owner.trim(), v.closed]);
+  JSON.stringify([
+    v.status,
+    v.due,
+    v.meeting,
+    v.owner.trim(),
+    v.closed,
+    v.type,
+    v.urgent,
+    v.appeared,
+  ]);
 
 // Filtros que se aplican al cambiar, sin recargar la página: se actualiza la dirección
 // y el servidor solo vuelve a dibujar la lista. Lo anterior sigue visible, atenuado, mientras llega.
 export function FiltersForm({
   statuses,
   meetings,
+  types,
   initial,
   children,
 }: {
   statuses: Option[];
   meetings: Option[];
+  types: Option[];
   initial: Values;
   children: React.ReactNode;
 }) {
@@ -134,6 +148,36 @@ export function FiltersForm({
             onChange={(e) => change("owner", e.target.value, 400)}
           />
         </label>
+        <label>
+          Tipo
+          <select
+            value={values.type}
+            onChange={(e) => change("type", e.target.value)}
+          >
+            <option value="">Todos</option>
+            {types.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={values.urgent === "1"}
+            onChange={(e) => change("urgent", e.target.checked ? "1" : "")}
+          />{" "}
+          Solo urgentes
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={values.appeared === "1"}
+            onChange={(e) => change("appeared", e.target.checked ? "1" : "")}
+          />{" "}
+          Solo lo que ya toca
+        </label>
         <label className="check">
           <input
             type="checkbox"
@@ -153,6 +197,9 @@ export function FiltersForm({
                 meeting: "",
                 owner: "",
                 closed: "",
+                type: "",
+                urgent: "",
+                appeared: "",
               };
               setValues(empty);
               apply(empty);

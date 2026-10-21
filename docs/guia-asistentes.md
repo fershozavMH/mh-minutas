@@ -45,3 +45,8 @@ En *Personas* están quienes pueden ser responsables, tengan o no inicio de sesi
 ## Todavía no disponible
 
 Recordatorios por correo, envío de la minuta por Gmail, la pantalla de inicio con tableros y las vistas por rol para directivos están planeados y dependen de definiciones pendientes; no los busques aún.
+
+## Acciones repetidas, tipo y avances
+- Al aprobar una propuesta que se parece a una acción que ya existe, el sistema te avisa y no crea otra. Elige **Sumar como avance de esta** (la acción existente queda igual, incluso si estaba cerrada) o **Es distinta: crear acción nueva**.
+- En cada acción puedes poner **tipo** (quién entrega y qué papel tienes), **prioridad**, si **se repite**, desde cuándo **aparece** en la vista y si hay que **agendarla**. Los avances se escriben con fecha de hoy y quedan en la acción.
+- En la lista, los filtros **Tipo**, **Solo urgentes** y **Solo lo que ya toca** ayudan a ver lo del día.

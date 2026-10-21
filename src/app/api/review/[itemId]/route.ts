@@ -23,6 +23,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ ite
 
   const { itemId } = await params;
   const result = await decideReview(user, itemId, parsed.data);
-  if (!result.ok) return Response.json({ error: result.error }, { status: statuses[result.error] });
-  return Response.json({ ok: true, actionId: result.actionId ?? null });
+  if (!result.ok) {
+    if (result.error === "posible_duplicado")
+      return Response.json({ error: result.error, similar: result.similar }, { status: 409 });
+    return Response.json({ error: result.error }, { status: statuses[result.error] });
+  }
+  return Response.json({
+    ok: true,
+    actionId: result.actionId ?? null,
+    followUpActionId: result.followUpActionId ?? null,
+  });
 }

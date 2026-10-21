@@ -15,6 +15,17 @@ enum Profile {
   ADMIN
 }
 
+enum Priority {
+  NORMAL
+  URGENT
+}
+
+enum Repeat {
+  NONE
+  WEEKLY
+  MONTHLY
+}
+
 enum ReviewKind {
   SUMMARY
   DECISION
@@ -62,6 +73,35 @@ model ActionStatus {
   actions Action[]
 }
 
+// Tipo de pendiente: define quién entrega y cuál es el papel de quien da seguimiento. Editable en catálogos.
+model ActionType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  position  Int
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  actions Action[]
+}
+
+// Avance con fecha sobre una acción: lo escribe una persona o llega de una reunión repetida.
+model FollowUp {
+  id        String   @id @default(cuid())
+  actionId  String
+  authorId  String
+  body      String
+  // Día al que corresponde el avance (puede ser anterior a hoy).
+  noteDate  DateTime
+  meetingId String?
+  createdAt DateTime @default(now())
+
+  action  Action   @relation(fields: [actionId], references: [id])
+  author  User     @relation(fields: [authorId], references: [id])
+  meeting Meeting? @relation(fields: [meetingId], references: [id])
+
+  @@index([actionId])
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String
@@ -86,6 +126,7 @@ model User {
   reviewsDecided  ReviewItem[] @relation("ReviewDecider")
   actionsCreated  Action[]
   changes         ChangeLog[]
+  followUps       FollowUp[]
   audits          AuditLog[]
   sessions        Session[]
   accounts        Account[]
@@ -110,6 +151,7 @@ model Meeting {
   sources     Source[]
   reviewItems ReviewItem[]
   actions     Action[]
+  followUps   FollowUp[]
 
   @@index([levelId])
   @@index([createdById])
@@ -192,6 +234,11 @@ model Action {
   statusId      String
   // Nota del estado actual (obligatoria si el estado lo pide); se limpia al cambiar a otro estado.
   statusNote    String?
+  typeId        String?
+  priority      Priority  @default(NORMAL)
+  repeat        Repeat    @default(NONE)
+  // Hay que ponerla en la agenda (calendario).
+  needsScheduling Boolean @default(false)
   levelId       String
   meetingId     String?
   createdById   String
@@ -202,6 +249,7 @@ model Action {
   updatedAt     DateTime  @updatedAt
 
   status      ActionStatus @relation(fields: [statusId], references: [id])
+  type        ActionType?  @relation(fields: [typeId], references: [id])
   level       Level        @relation(fields: [levelId], references: [id])
   meeting     Meeting?     @relation(fields: [meetingId], references: [id])
   owner       Person?      @relation(fields: [ownerId], references: [id])
@@ -211,8 +259,10 @@ model Action {
 
   reviewItem ReviewItem?
   changes    ChangeLog[]
+  followUps  FollowUp[]
 
   @@index([levelId])
+  @@index([typeId])
   @@index([statusId])
   @@index([meetingId])
   @@index([dueDate])

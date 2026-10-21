@@ -18,10 +18,18 @@ export const createUserSchema = z
   })
   .superRefine((value, ctx) => {
     if (value.profile === "ASSISTANT" && !value.bossId) {
-      ctx.addIssue({ code: "custom", path: ["bossId"], message: "La asistente necesita un directivo" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["bossId"],
+        message: "La asistente necesita un directivo",
+      });
     }
     if (value.profile !== "ASSISTANT" && value.bossId) {
-      ctx.addIssue({ code: "custom", path: ["bossId"], message: "Solo las asistentes tienen directivo" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["bossId"],
+        message: "Solo las asistentes tienen directivo",
+      });
     }
   });
 
@@ -57,6 +65,22 @@ export const updateStatusSchema = z
     position: z.number().int().min(1).optional(),
     isClosed: z.boolean().optional(),
     requiresNote: z.boolean().optional(),
+    active: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).some((key) => key !== "id"), {
+    message: "No hay nada que cambiar",
+  });
+
+export const createTypeSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  position: z.number().int().min(1),
+});
+
+export const updateTypeSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().trim().min(1).max(60).optional(),
+    position: z.number().int().min(1).optional(),
     active: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).some((key) => key !== "id"), {

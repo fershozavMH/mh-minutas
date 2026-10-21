@@ -37,7 +37,12 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   line-height: 1.5;
 }
 
@@ -385,4 +390,28 @@ button[aria-busy="true"]::after {
   width: 100%;
   font-size: 0.85em;
   opacity: 0.8;
+}
+
+.duplicate-box {
+  border: 1px solid var(--warn-border, #b7791f);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+.duplicate-box ul {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.1rem;
+}
+.duplicate-box li button {
+  margin-left: 0.5rem;
+}
+.badge-urgent {
+  color: var(--danger, #b42318);
+}
+.followups {
+  list-style: none;
+  padding: 0;
+}
+.followups li {
+  margin: 0.4rem 0;
 }

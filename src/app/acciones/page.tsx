@@ -6,6 +6,7 @@ import { parseActionFilters } from "@/lib/action-filters";
 import { listActions, listRetiredActions } from "@/lib/data/actions";
 import { listMeetings } from "@/lib/data/meetings";
 import { listActiveStatuses } from "@/lib/data/statuses";
+import { listActiveTypes } from "@/lib/data/types";
 import { HelpTip } from "../help-tip";
 import { SignOutButton } from "../sign-out-button";
 import { quickStatuses } from "@/lib/quick-status";
@@ -29,11 +30,12 @@ async function Actions({
   const filters = parseActionFilters(await searchParams);
   const filtered = Object.keys(filters).length > 0;
   const canEdit = user.profile === "ASSISTANT";
-  const [actions, retired, statuses, meetings] = await Promise.all([
+  const [actions, retired, statuses, meetings, types] = await Promise.all([
     listActions(user, filters),
     listRetiredActions(user),
     listActiveStatuses(),
     listMeetings(user),
+    listActiveTypes(),
   ]);
 
   const quick = quickStatuses(statuses);
@@ -43,12 +45,16 @@ async function Actions({
       <FiltersForm
         statuses={statuses.map((x) => ({ id: x.id, name: x.name }))}
         meetings={meetings.map((m) => ({ id: m.id, name: m.title }))}
+        types={types.map((t) => ({ id: t.id, name: t.name }))}
         initial={{
           status: filters.statusId ?? "",
           due: filters.due ?? "",
           meeting: filters.meetingId ?? "",
           owner: filters.owner ?? "",
           closed: filters.showClosed ? "1" : "",
+          type: filters.typeId ?? "",
+          urgent: filters.urgent ? "1" : "",
+          appeared: filters.appeared ? "1" : "",
         }}
       >
         {actions.length === 0 ? (
@@ -68,6 +74,7 @@ async function Actions({
                   <HelpTip topic="actions" label="Acciones oficiales" />
                 </th>
                 <th scope="col">Acción</th>
+                <th scope="col">Tipo</th>
                 <th scope="col">Responsable</th>
                 <th scope="col">Estado</th>
                 <th scope="col">Reunión</th>
@@ -80,8 +87,20 @@ async function Actions({
                     {a.dueDate ? dateFormat.format(a.dueDate) : "Sin fecha"}
                   </td>
                   <td>
+                    {a.priority === "URGENT" && (
+                      <strong className="badge-urgent">Urgente </strong>
+                    )}
                     <Link href={`/acciones/${a.id}`}>{a.title}</Link>
+                    {a.repeat !== "NONE" && (
+                      <span className="hint-inline">
+                        {a.repeat === "WEEKLY" ? "Semanal" : "Mensual"}
+                      </span>
+                    )}
+                    {a.needsScheduling && (
+                      <span className="hint-inline">Agendar</span>
+                    )}
                   </td>
+                  <td>{a.type?.name ?? ""}</td>
                   <td>{a.ownerName ?? "Sin responsable"}</td>
                   <td>
                     {canEdit ? (

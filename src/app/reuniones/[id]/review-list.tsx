@@ -34,14 +34,29 @@ const errors: Record<string, string> = {
   sin_sesion: "tu sesión terminó",
 };
 
+type Similar = {
+  id: string;
+  title: string;
+  statusName: string;
+  isClosed: boolean;
+};
+
+// Si la acción parece repetida, el servidor responde con las parecidas y la propuesta sigue pendiente.
+let lastSimilar: Similar[] | null = null;
+
 async function decide(row: ReviewRow, body: unknown): Promise<string | null> {
+  lastSimilar = null;
   const response = await fetch(`/api/review/${row.id}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   }).catch(() => null);
   if (response?.ok) return null;
-  const data = (await response?.json().catch(() => ({}))) as { error?: string } | undefined;
+  const data = (await response?.json().catch(() => ({}))) as { error?: string; similar?: Similar[] } | undefined;
+  if (data?.error === "posible_duplicado" && data.similar) {
+    lastSimilar = data.similar;
+    return "parece repetir una acción existente (revísala abajo)";
+  }
   return errors[data?.error ?? ""] ?? "no se pudo guardar";
 }
 
@@ -55,6 +70,7 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
   const [reason, setReason] = useState("");
   const { busy, setBusy, refresh } = useBusy();
   const [message, setMessage] = useState("");
+  const [similarBy, setSimilarBy] = useState<Record<string, Similar[]>>({});
 
   const current = (row: ReviewRow) => values[row.id] ?? row;
   const ownerLabel = (row: ReviewRow) =>
@@ -82,6 +98,10 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
     // Una por una: la regla de cada propuesta se valida en el servidor, y si una falla las demás siguen.
     for (const row of chosen) {
       const problem = await task(current(row));
+      if (lastSimilar) {
+        const found = lastSimilar;
+        setSimilarBy((all) => ({ ...all, [row.id]: found }));
+      }
       if (problem) failed.push(`«${label(current(row)).slice(0, 50)}»: ${problem}`);
       else done += 1;
     }
@@ -89,24 +109,41 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
     setSelected(new Set());
     setRejecting(false);
     setReason("");
-    setMessage(
-      `${done} ${verb}${failed.length ? `. No se pudo en ${failed.length}: ${failed.join("; ")}` : "."}`,
-    );
+    setMessage(`${done} ${verb}${failed.length ? `. No se pudo en ${failed.length}: ${failed.join("; ")}` : "."}`);
     refresh();
   }
 
-  const approveSelected = () =>
-    run(
-      (row) =>
-        decide(row, {
-          decision: "approve",
-          value:
-            row.kind === "ACTION"
-              ? { title: row.title, ownerName: row.ownerId ? null : row.ownerName || null, ownerId: row.ownerId || null, dueDate: row.dueDate }
-              : { text: row.text },
-        }),
-      "aprobadas",
+  const approvalBody = (row: ReviewRow, resolution?: unknown) => ({
+    decision: "approve",
+    value:
+      row.kind === "ACTION"
+        ? {
+            title: row.title,
+            ownerName: row.ownerId ? null : row.ownerName || null,
+            ownerId: row.ownerId || null,
+            dueDate: row.dueDate,
+          }
+        : { text: row.text },
+    ...(resolution ? { resolution } : {}),
+  });
+
+  const approveSelected = () => run((row) => decide(row, approvalBody(row)), "aprobadas");
+
+  // Decisión sobre una acción que parece repetida: sumarla como avance o crearla igualmente.
+  async function resolveDuplicate(row: ReviewRow, resolution: { mode: "new" } | { mode: "append"; actionId: string }) {
+    setBusy(true);
+    setMessage("");
+    const problem = await decide(current(row), approvalBody(current(row), resolution));
+    setBusy(false);
+    setMessage(
+      problem
+        ? `No se pudo: ${problem}`
+        : resolution.mode === "append"
+          ? "Sumada como avance de la acción existente."
+          : "Acción creada.",
     );
+    refresh();
+  }
 
   const rejectSelected = () => run((row) => decide(row, { decision: "reject", reason }), "rechazadas");
 
@@ -154,7 +191,10 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
                           Responsable{" "}
                           <PersonPicker
                             people={people}
-                            value={{ ownerId: value.ownerId, ownerName: value.ownerName }}
+                            value={{
+                              ownerId: value.ownerId,
+                              ownerName: value.ownerName,
+                            }}
                             onChange={(owner) => patch(row, owner)}
                           />
                         </label>
@@ -162,23 +202,60 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
                     </>
                   ) : (
                     <p>
-                      <textarea aria-label="Texto de la propuesta" value={value.text} rows={3} onChange={(e) => patch(row, { text: e.target.value })} />
+                      <textarea
+                        aria-label="Texto de la propuesta"
+                        value={value.text}
+                        rows={3}
+                        onChange={(e) => patch(row, { text: e.target.value })}
+                      />
                     </p>
                   )
                 ) : (
                   <p className="review-text">
-                    {row.kind === "ACTION"
-                      ? `${value.title} · ${ownerLabel(value)}`
-                      : value.text}
+                    {row.kind === "ACTION" ? `${value.title} · ${ownerLabel(value)}` : value.text}
                   </p>
                 )}
                 {row.kind === "ACTION" && (
                   <div className="field">
                     <label>
                       Fecha de compromiso{" "}
-                      <input type="date" value={value.dueDate} onChange={(e) => patch(row, { dueDate: e.target.value })} />
+                      <input
+                        type="date"
+                        value={value.dueDate}
+                        onChange={(e) => patch(row, { dueDate: e.target.value })}
+                      />
                     </label>
                     {isBlocked && <span className="hint-inline">Falta la fecha</span>}
+                  </div>
+                )}
+                {similarBy[row.id] && (
+                  <div className="duplicate-box" role="alert">
+                    <p>
+                      Parece repetir una acción que ya existe. Las cerradas se quedan cerradas: el aviso se suma como
+                      avance.
+                    </p>
+                    <ul>
+                      {similarBy[row.id].map((s) => (
+                        <li key={s.id}>
+                          «{s.title}» ({s.statusName})
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              resolveDuplicate(row, {
+                                mode: "append",
+                                actionId: s.id,
+                              })
+                            }
+                          >
+                            Sumar como avance de esta
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <button type="button" disabled={busy} onClick={() => resolveDuplicate(row, { mode: "new" })}>
+                      Es distinta: crear acción nueva
+                    </button>
                   </div>
                 )}
                 <button type="button" className="link-button" onClick={() => setEditing((set) => toggle(set, row.id))}>

@@ -5,11 +5,15 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getAction, getActionHistory } from "@/lib/data/actions";
 import { listPeople } from "@/lib/data/people";
 import { listActiveStatuses } from "@/lib/data/statuses";
+import { listActiveTypes } from "@/lib/data/types";
 import { HelpTip } from "../../help-tip";
 import { SignOutButton } from "../../sign-out-button";
 import { ActionEditor } from "./action-editor";
 
-const dateFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeZone: "UTC" });
+const dateFormat = new Intl.DateTimeFormat("es-MX", {
+  dateStyle: "long",
+  timeZone: "UTC",
+});
 const stampFormat = new Intl.DateTimeFormat("es-MX", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -22,6 +26,11 @@ const fieldLabel: Record<string, string> = {
   dueDate: "Fecha de compromiso",
   status: "Estado",
   statusNote: "Nota del estado",
+  type: "Tipo",
+  priority: "Prioridad",
+  repeat: "Se repite",
+  needsScheduling: "Hay que agendarla",
+  actionDate: "Aparece desde",
   retired: "Retirada",
   replaced: "Reemplazada por",
   replaces: "Reemplaza a",
@@ -35,13 +44,27 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const action = await getAction(user, id);
   if (!action) notFound();
-  const [rawHistory, statuses, people] = await Promise.all([getActionHistory(user, id), listActiveStatuses(), listPeople()]);
+  const [rawHistory, statuses, people, activeTypes] = await Promise.all([
+    getActionHistory(user, id),
+    listActiveStatuses(),
+    listPeople(),
+    listActiveTypes(),
+  ]);
+  const typeOptions =
+    action.type && !activeTypes.some((t) => t.id === action.type!.id) ? [action.type, ...activeTypes] : activeTypes;
   const history = rawHistory ?? [];
 
   const canEdit = user.profile === "ASSISTANT" && !action.retiredAt;
   const statusOptions = statuses.some((s) => s.id === action.statusId)
     ? statuses
-    : [{ id: action.statusId, name: action.status.name, requiresNote: action.status.requiresNote }, ...statuses];
+    : [
+        {
+          id: action.statusId,
+          name: action.status.name,
+          requiresNote: action.status.requiresNote,
+        },
+        ...statuses,
+      ];
 
   return (
     <>
@@ -65,7 +88,17 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           dueDate={action.dueDate ? action.dueDate.toISOString().slice(0, 10) : ""}
           statusId={action.statusId}
           statusNote={action.statusNote ?? ""}
-          statuses={statusOptions.map((s) => ({ id: s.id, name: s.name, requiresNote: s.requiresNote }))}
+          typeId={action.typeId ?? ""}
+          priority={action.priority}
+          repeat={action.repeat}
+          needsScheduling={action.needsScheduling}
+          actionDate={action.actionDate ? action.actionDate.toISOString().slice(0, 10) : ""}
+          types={typeOptions.map((t) => ({ id: t.id, name: t.name }))}
+          statuses={statusOptions.map((s) => ({
+            id: s.id,
+            name: s.name,
+            requiresNote: s.requiresNote,
+          }))}
         />
       ) : (
         <ul>
@@ -75,8 +108,22 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             Estado: {action.status.name}
             {action.statusNote ? ` (${action.statusNote})` : ""}
           </li>
+          <li>Tipo: {action.type?.name ?? "Sin tipo"}</li>
+          <li>Prioridad: {action.priority === "URGENT" ? "Urgente" : "Normal"}</li>
           <li>Nivel: {action.level.name}</li>
           {action.meeting && <li>Reunión: {action.meeting.title}</li>}
+        </ul>
+      )}
+      <h2>Avances</h2>
+      {action.followUps.length === 0 ? (
+        <p>Sin avances todavía.</p>
+      ) : (
+        <ul className="followups">
+          {action.followUps.map((f) => (
+            <li key={f.id}>
+              {dateFormat.format(f.noteDate)} · {f.author.name}: {f.body}
+            </li>
+          ))}
         </ul>
       )}
       <h2>

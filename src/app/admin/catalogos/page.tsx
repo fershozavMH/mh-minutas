@@ -12,17 +12,22 @@ async function Catalogs() {
   if (user.profile !== "ADMIN") redirect("/");
 
   const db = getDb();
-  const [levels, statuses] = await Promise.all([
+  const [levels, statuses, types] = await Promise.all([
     db.level.findMany({ orderBy: { rank: "asc" } }),
-    db.actionStatus.findMany({ orderBy: [{ position: "asc" }, { createdAt: "asc" }] }),
+    db.actionStatus.findMany({
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    }),
+    db.actionType.findMany({
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    }),
   ]);
-  return <CatalogManager levels={levels} statuses={statuses} />;
+  return <CatalogManager levels={levels} statuses={statuses} types={types} />;
 }
 
 export default function CatalogsPage() {
   return (
     <main>
-      <h1>Niveles y estados</h1>
+      <h1>Niveles, estados y tipos</h1>
       <p>
         <Link href="/admin">Usuarios</Link> · <Link href="/">Inicio</Link> <SignOutButton />
       </p>
