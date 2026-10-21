@@ -6,6 +6,7 @@ import { getMeeting } from "@/lib/data/meetings";
 import { HelpTip } from "../../help-tip";
 import { SignOutButton } from "../../sign-out-button";
 import { ProposeButton } from "./propose-button";
+import { ReviewList, type ReviewRow } from "./review-list";
 import { SourceForm } from "./source-form";
 
 const dateFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeZone: "UTC" });
@@ -28,7 +29,20 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   // Un solo siguiente paso a la vez, para no saturar la pantalla.
   const sensitive = meeting.level.isSensitive;
   const proposed = new Set(meeting.reviewItems.map((item) => item.sourceId));
-  const pending = meeting.reviewItems.filter((item) => item.status === "PENDING").length;
+  const asRow = (item: (typeof meeting.reviewItems)[number]): ReviewRow => {
+    const value = (item.editedValue ?? item.aiValue) as Record<string, string | null>;
+    return {
+      id: item.id,
+      kind: item.kind,
+      text: value.text ?? "",
+      title: value.title ?? "",
+      ownerName: value.ownerName ?? "",
+      dueDate: value.dueDate ?? "",
+    };
+  };
+  const pendingRows = meeting.reviewItems.filter((item) => item.status === "PENDING").map(asRow);
+  const decided = meeting.reviewItems.filter((item) => item.status !== "PENDING");
+  const pending = pendingRows.length;
   const nextStep = !canUpload
     ? null
     : meeting.sources.length === 0
@@ -68,9 +82,29 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         </ul>
       )}
       {pending > 0 && (
-        <p>
-          {pending} propuestas pendientes de revisión. La pantalla de revisión llega en la siguiente tarea.
-        </p>
+        <>
+          <h2>
+            Propuestas por revisar <HelpTip topic="review" label="Revisar propuestas" />
+          </h2>
+          {canUpload ? <ReviewList rows={pendingRows} /> : <p>{pending} propuestas pendientes de revisión.</p>}
+        </>
+      )}
+      {decided.length > 0 && (
+        <>
+          <h2>Ya revisadas</h2>
+          <ul>
+            {decided.map((item) => {
+              const row = asRow(item);
+              const label = row.kind === "ACTION" ? `${row.title} (${row.ownerName || "sin responsable"}, ${row.dueDate})` : row.text;
+              return (
+                <li key={item.id}>
+                  {item.status === "APPROVED" ? "Aprobada" : "Rechazada"} · {label}
+                  {item.status === "REJECTED" && item.rejectionReason ? ` — Motivo: ${item.rejectionReason}` : ""}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
       {canUpload && <SourceForm meetingId={meeting.id} />}
     </>

@@ -215,4 +215,54 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
       else process.env.ANTHROPIC_API_KEY = previousKey;
     }
   });
+  it("revisión: la persona decide, la fecha es obligatoria y nada se decide dos veces", async () => {
+    const { decideReview } = await import("./reviews");
+    const mk = (kind: "ACTION" | "DECISION" | "SUMMARY", aiValue: object) =>
+      db.reviewItem.create({ data: { meetingId: ids.m3, kind, aiValue } });
+    const action = await mk("ACTION", { title: "Enviar accesos", ownerName: "Daray", dueDate: null });
+    const decision = await mk("DECISION", { text: "Se aprueba el piloto." });
+    const summary = await mk("SUMMARY", { text: "Resumen de la junta." });
+    const rejected = await mk("DECISION", { text: "Otra cosa" });
+
+    // Permisos
+    expect(await decideReview(viewers.d2, action.id, { decision: "approve" })).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await decideReview(viewers.admin, action.id, { decision: "approve" })).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await decideReview(viewers.a1, action.id, { decision: "approve" })).toEqual({ ok: false, error: "no_existe" });
+
+    // Sin fecha no hay acción oficial
+    expect(await decideReview(viewers.a2, action.id, { decision: "approve" })).toEqual({ ok: false, error: "fecha_obligatoria" });
+    expect(await db.action.count({ where: { createdById: ids.a2, title: "Enviar accesos" } })).toBe(0);
+    expect((await db.reviewItem.findUnique({ where: { id: action.id } }))?.status).toBe("PENDING");
+
+    // Con fecha editada: se crea la acción oficial y se conserva lo que propuso la IA
+    const first = await db.actionStatus.findFirst({ where: { active: true }, orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }] });
+    const ok = await decideReview(viewers.a2, action.id, {
+      decision: "approve",
+      value: { title: "Enviar accesos", ownerName: "Daray", dueDate: "2026-10-23" },
+    });
+    expect(ok.ok).toBe(true);
+    const saved = await db.reviewItem.findUnique({ where: { id: action.id }, include: { action: true } });
+    expect(saved?.status).toBe("APPROVED");
+    expect(saved?.aiValue).toEqual({ title: "Enviar accesos", ownerName: "Daray", dueDate: null });
+    expect(saved?.editedValue).toMatchObject({ dueDate: "2026-10-23" });
+    expect(saved?.decidedById).toBe(ids.a2);
+    expect(saved?.action?.levelId).toBe(ids.low);
+    expect(saved?.action?.statusId).toBe(first?.id);
+    expect(saved?.action?.dueDate?.toISOString().slice(0, 10)).toBe("2026-10-23");
+
+    // Una sola decisión
+    expect(await decideReview(viewers.a2, action.id, { decision: "reject", reason: "x" })).toEqual({ ok: false, error: "ya_decidido" });
+
+    // Resumen y decisión pasan a la ficha oficial
+    expect((await decideReview(viewers.a2, summary.id, { decision: "approve", value: { text: "Resumen corregido." } })).ok).toBe(true);
+    expect((await decideReview(viewers.a2, decision.id, { decision: "approve" })).ok).toBe(true);
+    const card = (await db.meeting.findUnique({ where: { id: ids.m3 } }))?.officialCard;
+    expect(card).toEqual({ summary: "Resumen corregido.", decisions: ["Se aprueba el piloto."] });
+
+    // Rechazar guarda el motivo y no crea nada oficial
+    expect((await decideReview(viewers.a2, rejected.id, { decision: "reject", reason: "No se dijo en la junta" })).ok).toBe(true);
+    const r = await db.reviewItem.findUnique({ where: { id: rejected.id } });
+    expect(r).toMatchObject({ status: "REJECTED", rejectionReason: "No se dijo en la junta" });
+    expect(await db.action.count({ where: { createdById: ids.a2 } })).toBe(1);
+  });
 });

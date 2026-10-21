@@ -221,3 +221,16 @@ textarea {
   color: var(--text);
   font: inherit;
 }
+
+.review-list {
+  list-style: none;
+  padding: 0;
+}
+
+.review-item {
+  margin: 12px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}

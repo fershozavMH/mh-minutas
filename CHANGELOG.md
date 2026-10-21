@@ -30,3 +30,8 @@
 ## T-13
 - Prueba de frontera: solo `data/proposals.ts` puede usar la IA y corta el nivel sensible antes de crear el cliente.
 - El intento de enviar a la IA una reunión sensible queda en la auditoría (`AiBlocked`), sin contenido.
+
+## T-14
+- Revisar, editar, aprobar o rechazar las propuestas de la IA (`POST /api/review/[itemId]`).
+- Aprobar una acción crea la acción oficial; la fecha de compromiso es obligatoria. Resumen, decisiones, riesgos y siguientes pasos aprobados pasan a la ficha oficial.
+- Se conserva lo que propuso la IA y lo que editó la persona; una propuesta decidida no se vuelve a decidir.
