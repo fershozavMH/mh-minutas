@@ -415,3 +415,14 @@ button[aria-busy="true"]::after {
 .followups li {
   margin: 0.4rem 0;
 }
+
+/* Campo de avance: etiqueta arriba, cuadro de texto corto y botón debajo. */
+.field.stacked,
+.field.stacked label {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.field.stacked textarea {
+  min-height: 84px;
+  max-width: 560px;
+}

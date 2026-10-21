@@ -279,7 +279,7 @@ export function ActionEditor(props: Props) {
         </div>
       )}
       <h2>Agregar un avance</h2>
-      <div className="field">
+      <div className="field stacked">
         <label>
           Avance (se guarda con la fecha de hoy)
           <textarea rows={2} maxLength={1000} value={followBody} onChange={(e) => setFollowBody(e.target.value)} />
