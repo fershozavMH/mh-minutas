@@ -15,6 +15,10 @@ export const help = {
     "La IA lee el transcript y propone resumen, decisiones, riesgos, siguientes pasos y acciones. Todo queda pendiente: nada es oficial hasta que una persona lo revise y lo apruebe.",
   review:
     "Revisa cada propuesta: puedes corregir el texto antes de aprobar. Al aprobar una acción se crea la acción oficial, y por eso necesita fecha de compromiso; el responsable es opcional. Si rechazas, escribe el motivo. Una vez decidida, la propuesta no se cambia desde aquí.",
+  actions:
+    "Aquí están las acciones oficiales: las que una persona aprobó. Cada una tiene responsable, fecha de compromiso y estado. Nunca se borran: se retiran con un motivo o se reemplazan por otra.",
+  history:
+    "Cada cambio guarda quién lo hizo, cuándo y el valor anterior, para poder explicar por qué una fecha o un responsable cambió.",
   sensitive: "Una reunión de nivel sensible nunca se envía a la IA y su ficha se captura a mano.",
 } as const;
 

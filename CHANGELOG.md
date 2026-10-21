@@ -35,3 +35,7 @@
 - Revisar, editar, aprobar o rechazar las propuestas de la IA (`POST /api/review/[itemId]`).
 - Aprobar una acción crea la acción oficial; la fecha de compromiso es obligatoria. Resumen, decisiones, riesgos y siguientes pasos aprobados pasan a la ficha oficial.
 - Se conserva lo que propuso la IA y lo que editó la persona; una propuesta decidida no se vuelve a decidir.
+
+## T-15
+- Pantalla de acciones oficiales (`/acciones`, `/acciones/[id]`): lista, edición de título, responsable, fecha y estado, historial con valor anterior.
+- Retirar (con motivo) y reemplazar acciones; nunca se borran. La fecha de compromiso no se puede vaciar.

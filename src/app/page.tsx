@@ -12,7 +12,13 @@ async function Greeting() {
     <>
       <p>Hola, {user.name}.</p>
       <p>
-        {user.profile === "ADMIN" ? <Link href="/admin">Usuarios</Link> : <Link href="/reuniones">Reuniones</Link>}
+        {user.profile === "ADMIN" ? (
+          <Link href="/admin">Usuarios</Link>
+        ) : (
+          <>
+            <Link href="/reuniones">Reuniones</Link> <Link href="/acciones">Acciones</Link>
+          </>
+        )}
       </p>
       <SignOutButton />
     </>

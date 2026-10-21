@@ -60,7 +60,7 @@ export default function MeetingsPage() {
     <main>
       <h1>Reuniones</h1>
       <p>
-        <Link href="/">Inicio</Link> <SignOutButton />
+        <Link href="/">Inicio</Link> <Link href="/acciones">Acciones</Link> <SignOutButton />
       </p>
       <Suspense fallback={<p>Cargando…</p>}>
         <Meetings />

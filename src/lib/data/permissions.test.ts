@@ -267,4 +267,62 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     expect(await db.action.count({ where: { createdById: ids.a2, title: "Enviar accesos" } })).toBe(1);
     expect(await db.action.count({ where: { createdById: ids.a2, title: "Otra cosa" } })).toBe(0);
   });
+  it("acciones: solo la dueña edita, cada cambio guarda el valor anterior y nada se borra", async () => {
+    const api = await import("./actions");
+    const status2 = await db.actionStatus.create({ data: { name: `${run}-estado2`, position: 2 } });
+    const a = await db.action.create({
+      data: {
+        title: `${run}-editable`,
+        ownerName: "Daray",
+        dueDate: new Date("2026-10-22T12:00:00Z"),
+        actionDate: new Date("2026-10-22T12:00:00Z"),
+        statusId: ids.status,
+        levelId: ids.low,
+        meetingId: ids.m3,
+        createdById: ids.a2,
+      },
+    });
+
+    // Permisos: otra asistente no la ve, el directivo y Administración no editan
+    expect(await api.updateAction(viewers.a1, a.id, { dueDate: "2026-10-23" })).toEqual({ ok: false, error: "no_existe" });
+    expect(await api.updateAction(viewers.d2, a.id, { dueDate: "2026-10-23" })).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await api.updateAction(viewers.admin, a.id, { dueDate: "2026-10-23" })).toEqual({ ok: false, error: "sin_permiso" });
+
+    // Cambiar la fecha y el estado guarda autor y valor anterior
+    expect(await api.updateAction(viewers.a2, a.id, { dueDate: "2026-10-23", statusId: status2.id })).toEqual({ ok: true });
+    const changed = await db.action.findUnique({ where: { id: a.id } });
+    expect(changed?.dueDate?.toISOString().slice(0, 10)).toBe("2026-10-23");
+    expect(changed?.actionDate?.toISOString().slice(0, 10)).toBe("2026-10-23");
+    const log = await db.changeLog.findMany({ where: { actionId: a.id }, orderBy: { field: "asc" } });
+    expect(log.map((l) => [l.field, l.oldValue, l.newValue, l.authorId])).toEqual([
+      ["dueDate", "2026-10-22", "2026-10-23", ids.a2],
+      ["status", `${run}-estado`, `${run}-estado2`, ids.a2],
+    ]);
+    expect(await api.updateAction(viewers.a2, a.id, { dueDate: "2026-10-23" })).toEqual({ ok: false, error: "sin_cambios" });
+    expect(await api.updateAction(viewers.a2, a.id, { statusId: "no-existe" })).toEqual({ ok: false, error: "estado_invalido" });
+
+    // Reemplazar: la anterior se retira y apunta a la nueva
+    const replaced = await api.replaceAction(viewers.a2, a.id, { title: `${run}-nueva`, ownerName: null, dueDate: "2026-11-02" });
+    expect(replaced.ok).toBe(true);
+    const old = await db.action.findUnique({ where: { id: a.id } });
+    expect(old?.retiredAt).not.toBeNull();
+    expect(old?.replacedById).toBe(replaced.ok ? replaced.id : "");
+    const fresh = await db.action.findUnique({ where: { id: replaced.ok ? (replaced.id ?? "") : "" } });
+    expect(fresh).toMatchObject({ levelId: ids.low, meetingId: ids.m3, createdById: ids.a2, retiredAt: null });
+    expect(await api.updateAction(viewers.a2, a.id, { title: "x" })).toEqual({ ok: false, error: "retirada" });
+    expect(await api.replaceAction(viewers.a2, a.id, { title: "y", ownerName: null, dueDate: "2026-11-02" })).toEqual({ ok: false, error: "retirada" });
+
+    // Retirar exige permiso y no borra
+    expect(await api.retireAction(viewers.d2, fresh!.id, "x")).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await api.retireAction(viewers.a2, fresh!.id, "Ya no aplica")).toEqual({ ok: true });
+    expect(await api.retireAction(viewers.a2, fresh!.id, "otra vez")).toEqual({ ok: false, error: "retirada" });
+    expect((await db.action.findUnique({ where: { id: fresh!.id } }))?.retiredReason).toBe("Ya no aplica");
+    expect((await api.listRetiredActions(viewers.a2)).map((r) => r.id)).toEqual(expect.arrayContaining([a.id, fresh!.id]));
+    expect((await api.listActions(viewers.a2)).map((r) => r.id)).not.toContain(a.id);
+
+    await db.changeLog.deleteMany({ where: { actionId: { in: [a.id, fresh!.id] } } });
+    await db.action.update({ where: { id: a.id }, data: { replacedById: null } });
+    await db.action.deleteMany({ where: { id: { in: [a.id, fresh!.id] } } });
+    await db.actionStatus.delete({ where: { id: status2.id } });
+  });
 });
