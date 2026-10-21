@@ -332,3 +332,13 @@ button[aria-busy="true"]::after {
   opacity: 0.55;
   transition: opacity 0.15s;
 }
+
+/* Aviso de actualización de los filtros: sin caja, y no ocupa espacio cuando está vacío. */
+.filters-status {
+  align-self: center;
+  opacity: 0.8;
+  font-size: 0.9em;
+}
+.filters-status:empty {
+  display: none;
+}

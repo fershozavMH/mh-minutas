@@ -124,7 +124,7 @@ export function FiltersForm({
             Quitar filtros
           </button>
         )}
-        <span role="status" className="hint">
+        <span role="status" className="filters-status">
           {pending ? "Actualizando…" : ""}
         </span>
       </form>
