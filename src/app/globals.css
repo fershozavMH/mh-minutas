@@ -426,3 +426,14 @@ button[aria-busy="true"]::after {
   min-height: 84px;
   max-width: 560px;
 }
+
+/* Casillas de los filtros en una sola línea con su texto; listas desplegables sin estirarse de más. */
+.filters label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 10px;
+}
+.filters select {
+  max-width: 260px;
+}
