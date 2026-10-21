@@ -39,3 +39,8 @@
 ## T-15
 - Pantalla de acciones oficiales (`/acciones`, `/acciones/[id]`): lista, edición de título, responsable, fecha y estado, historial con valor anterior.
 - Retirar (con motivo) y reemplazar acciones; nunca se borran. La fecha de compromiso no se puede vaciar.
+
+## Revisión con casillas
+- Las propuestas se seleccionan con casillas y se aprueban o rechazan con una sola barra; "Editar" abre los campos solo cuando hace falta.
+- Una acción sin fecha no se puede seleccionar hasta tenerla. Si una propuesta falla, las demás se deciden igual y se avisa cuál falló.
+- Los campos de texto son más anchos para que no corten títulos largos.

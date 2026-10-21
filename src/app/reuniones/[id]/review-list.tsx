@@ -21,109 +21,197 @@ const kindLabel: Record<ReviewRow["kind"], string> = {
 };
 
 const errors: Record<string, string> = {
-  fecha_obligatoria: "Toda acción necesita una fecha de compromiso.",
-  valor_invalido: "Revisa el texto: no puede quedar vacío.",
-  ya_decidido: "Esta propuesta ya fue decidida.",
-  no_existe: "Esta propuesta ya no está disponible.",
-  sin_permiso: "Tu perfil no puede decidir propuestas.",
-  sin_estado: "No hay estados de acción activos; avisa a Administración.",
-  datos_invalidos: "Revisa los datos.",
-  sin_sesion: "Tu sesión terminó; vuelve a entrar.",
+  fecha_obligatoria: "falta la fecha de compromiso",
+  valor_invalido: "el texto no puede quedar vacío",
+  ya_decidido: "ya fue decidida",
+  no_existe: "ya no está disponible",
+  sin_permiso: "tu perfil no puede decidir",
+  sin_estado: "no hay estados de acción activos",
+  datos_invalidos: "datos inválidos",
+  sin_sesion: "tu sesión terminó",
 };
 
-function Item({ row }: { row: ReviewRow }) {
+async function decide(row: ReviewRow, body: unknown): Promise<string | null> {
+  const response = await fetch(`/api/review/${row.id}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => null);
+  if (response?.ok) return null;
+  const data = (await response?.json().catch(() => ({}))) as { error?: string } | undefined;
+  return errors[data?.error ?? ""] ?? "no se pudo guardar";
+}
+
+const label = (row: ReviewRow) => (row.kind === "ACTION" ? row.title : row.text);
+
+export function ReviewList({ rows }: { rows: ReviewRow[] }) {
   const router = useRouter();
-  const [text, setText] = useState(row.text);
-  const [title, setTitle] = useState(row.title);
-  const [owner, setOwner] = useState(row.ownerName);
-  const [due, setDue] = useState(row.dueDate);
+  const [values, setValues] = useState<Record<string, ReviewRow>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<Set<string>>(new Set());
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
-  async function send(body: unknown) {
+  const current = (row: ReviewRow) => values[row.id] ?? row;
+  const patch = (row: ReviewRow, changes: Partial<ReviewRow>) =>
+    setValues((all) => ({ ...all, [row.id]: { ...current(row), ...changes } }));
+  // Una acción sin fecha no se puede aprobar: la casilla queda bloqueada hasta que la tenga.
+  const blocked = (row: ReviewRow) => current(row).kind === "ACTION" && current(row).dueDate === "";
+  const toggle = (set: Set<string>, id: string) => {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  };
+
+  const selectable = rows.filter((row) => !blocked(row));
+  const chosen = rows.filter((row) => selected.has(row.id) && !blocked(row));
+  const allChosen = selectable.length > 0 && selectable.every((row) => selected.has(row.id));
+
+  async function run(task: (row: ReviewRow) => Promise<string | null>, verb: string) {
     setBusy(true);
     setMessage("");
-    const response = await fetch(`/api/review/${row.id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }).catch(() => null);
-    setBusy(false);
-    if (response?.ok) {
-      router.refresh();
-      return;
+    const failed: string[] = [];
+    let done = 0;
+    // Una por una: la regla de cada propuesta se valida en el servidor, y si una falla las demás siguen.
+    for (const row of chosen) {
+      const problem = await task(current(row));
+      if (problem) failed.push(`«${label(current(row)).slice(0, 50)}»: ${problem}`);
+      else done += 1;
     }
-    const data = (await response?.json().catch(() => ({}))) as { error?: string } | undefined;
-    setMessage(errors[data?.error ?? ""] ?? "No se pudo guardar la decisión.");
+    setBusy(false);
+    setSelected(new Set());
+    setRejecting(false);
+    setReason("");
+    setMessage(
+      `${done} ${verb}${failed.length ? `. No se pudo en ${failed.length}: ${failed.join("; ")}` : "."}`,
+    );
+    router.refresh();
   }
 
-  const approve = () =>
-    send({
-      decision: "approve",
-      value: row.kind === "ACTION" ? { title, ownerName: owner || null, dueDate: due || null } : { text },
-    });
+  const approveSelected = () =>
+    run(
+      (row) =>
+        decide(row, {
+          decision: "approve",
+          value:
+            row.kind === "ACTION"
+              ? { title: row.title, ownerName: row.ownerName || null, dueDate: row.dueDate }
+              : { text: row.text },
+        }),
+      "aprobadas",
+    );
+
+  const rejectSelected = () => run((row) => decide(row, { decision: "reject", reason }), "rechazadas");
 
   return (
-    <li className="review-item">
-      <strong>{kindLabel[row.kind]}</strong>
-      {row.kind === "ACTION" ? (
-        <div>
-          <div className="field">
-            <label>
-              Acción <input value={title} onChange={(e) => setTitle(e.target.value)} />
-            </label>
-          </div>
-          <div className="field">
-            <label>
-              Responsable <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Sin responsable" />
-            </label>
-          </div>
-          <div className="field">
-            <label>
-              Fecha de compromiso <input type="date" value={due} onChange={(e) => setDue(e.target.value)} required />
-            </label>
-          </div>
-        </div>
-      ) : (
-        <p>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} />
-        </p>
-      )}
-      {rejecting ? (
-        <div className="field">
-          <label>
-            Motivo <input value={reason} onChange={(e) => setReason(e.target.value)} />
-          </label>
-          <button type="button" disabled={busy || reason.trim() === ""} onClick={() => send({ decision: "reject", reason })}>
-            Confirmar rechazo
-          </button>
-          <button type="button" disabled={busy} onClick={() => setRejecting(false)}>
-            Cancelar
-          </button>
-        </div>
-      ) : (
-        <p>
-          <button type="button" disabled={busy} onClick={approve}>
-            Aprobar
-          </button>{" "}
-          <button type="button" disabled={busy} onClick={() => setRejecting(true)}>
-            Rechazar
-          </button>
-        </p>
-      )}
+    <div>
+      <p>
+        <label>
+          <input
+            type="checkbox"
+            checked={allChosen}
+            disabled={busy || selectable.length === 0}
+            onChange={() => setSelected(allChosen ? new Set() : new Set(selectable.map((row) => row.id)))}
+          />{" "}
+          Seleccionar todo
+        </label>
+      </p>
+      <ul className="review-list">
+        {rows.map((row) => {
+          const value = current(row);
+          const isBlocked = blocked(row);
+          const isEditing = editing.has(row.id);
+          return (
+            <li key={row.id} className="review-item">
+              <label className="review-check">
+                <input
+                  type="checkbox"
+                  aria-label={`Seleccionar: ${label(value)}`}
+                  checked={selected.has(row.id) && !isBlocked}
+                  disabled={busy || isBlocked}
+                  onChange={() => setSelected((set) => toggle(set, row.id))}
+                />
+              </label>
+              <div className="review-body">
+                <strong>{kindLabel[row.kind]}</strong>
+                {isEditing ? (
+                  row.kind === "ACTION" ? (
+                    <>
+                      <div className="field">
+                        <label>
+                          Acción <input value={value.title} onChange={(e) => patch(row, { title: e.target.value })} />
+                        </label>
+                      </div>
+                      <div className="field">
+                        <label>
+                          Responsable{" "}
+                          <input
+                            value={value.ownerName}
+                            placeholder="Sin responsable"
+                            onChange={(e) => patch(row, { ownerName: e.target.value })}
+                          />
+                        </label>
+                      </div>
+                    </>
+                  ) : (
+                    <p>
+                      <textarea value={value.text} rows={3} onChange={(e) => patch(row, { text: e.target.value })} />
+                    </p>
+                  )
+                ) : (
+                  <p className="review-text">
+                    {row.kind === "ACTION"
+                      ? `${value.title} · ${value.ownerName || "Sin responsable"}`
+                      : value.text}
+                  </p>
+                )}
+                {row.kind === "ACTION" && (
+                  <div className="field">
+                    <label>
+                      Fecha de compromiso{" "}
+                      <input type="date" value={value.dueDate} onChange={(e) => patch(row, { dueDate: e.target.value })} />
+                    </label>
+                    {isBlocked && <span className="hint-inline">Falta la fecha</span>}
+                  </div>
+                )}
+                <button type="button" className="link-button" onClick={() => setEditing((set) => toggle(set, row.id))}>
+                  {isEditing ? "Listo" : "Editar"}
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
       {message && <p role="status">{message}</p>}
-    </li>
-  );
-}
-
-export function ReviewList({ rows }: { rows: ReviewRow[] }) {
-  return (
-    <ul className="review-list">
-      {rows.map((row) => (
-        <Item key={row.id} row={row} />
-      ))}
-    </ul>
+      {chosen.length > 0 && (
+        <div className="review-bar">
+          {rejecting ? (
+            <>
+              <label>
+                Motivo (para las {chosen.length}) <input value={reason} onChange={(e) => setReason(e.target.value)} />
+              </label>
+              <button type="button" disabled={busy || reason.trim() === ""} onClick={rejectSelected}>
+                Confirmar rechazo
+              </button>
+              <button type="button" disabled={busy} onClick={() => setRejecting(false)}>
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" disabled={busy} onClick={approveSelected}>
+                Aprobar seleccionadas ({chosen.length})
+              </button>
+              <button type="button" disabled={busy} onClick={() => setRejecting(true)}>
+                Rechazar seleccionadas…
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
