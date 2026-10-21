@@ -42,3 +42,21 @@ export const updateLevelSchema = z
   .refine((value) => Object.keys(value).some((key) => key !== "id"), {
     message: "No hay nada que cambiar",
   });
+
+export const createStatusSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  position: z.number().int().min(1),
+  isClosed: z.boolean().default(false),
+});
+
+export const updateStatusSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().trim().min(1).max(60).optional(),
+    position: z.number().int().min(1).optional(),
+    isClosed: z.boolean().optional(),
+    active: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).some((key) => key !== "id"), {
+    message: "No hay nada que cambiar",
+  });

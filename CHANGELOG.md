@@ -2,6 +2,7 @@
 
 ## Sin liberar
 
+- Administración de niveles y estados (/admin/catalogos y /api/admin/statuses): alta y desactivación, nada se borra; siempre queda un estado abierto activo.
 - T-01: base del proyecto (Next.js, TypeScript, Prisma, Vitest, CI).
 - T-08b: ayudas contextuales (signo ?), página de ayuda y siguiente paso en Administración.
 - T-08: tema Corporate Indigo en modo claro y oscuro, con botón para cambiarlo.

@@ -67,7 +67,7 @@ export default function AdminPage() {
     <main>
       <h1>Usuarios</h1>
       <p>
-        <Link href="/">Inicio</Link> <SignOutButton />
+        <Link href="/admin/catalogos">Niveles y estados</Link> · <Link href="/">Inicio</Link> <SignOutButton />
       </p>
       <Suspense fallback={<p>Cargando…</p>}>
         <Admin />

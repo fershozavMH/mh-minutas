@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLevelSchema, createUserSchema, updateLevelSchema } from "./admin-schemas";
+import { createLevelSchema, createStatusSchema, createUserSchema, updateLevelSchema, updateStatusSchema } from "./admin-schemas";
 
 const base = { name: "Daray", email: "Daray@MachineryHunters.com", profile: "ASSISTANT", maxLevelId: "l1", bossId: "u1" };
 
@@ -36,5 +36,20 @@ describe("niveles", () => {
   it("una edición necesita al menos un cambio", () => {
     expect(updateLevelSchema.safeParse({ id: "l1" }).success).toBe(false);
     expect(updateLevelSchema.safeParse({ id: "l1", active: false }).success).toBe(true);
+  });
+});
+
+describe("esquemas de estados", () => {
+  it("acepta un estado válido y por defecto no cierra", () => {
+    const parsed = createStatusSchema.parse({ name: " En revisión ", position: 3 });
+    expect(parsed).toEqual({ name: "En revisión", position: 3, isClosed: false });
+  });
+  it("rechaza orden menor a 1 y nombre vacío", () => {
+    expect(createStatusSchema.safeParse({ name: "x", position: 0 }).success).toBe(false);
+    expect(createStatusSchema.safeParse({ name: " ", position: 1 }).success).toBe(false);
+  });
+  it("la actualización exige al menos un cambio", () => {
+    expect(updateStatusSchema.safeParse({ id: "a" }).success).toBe(false);
+    expect(updateStatusSchema.safeParse({ id: "a", active: false }).success).toBe(true);
   });
 });
