@@ -54,11 +54,12 @@ export function ActionEditor(props: Props) {
   const { busy, setBusy, refresh } = useBusy();
   const [message, setMessage] = useState("");
 
-  async function run(task: () => ReturnType<typeof call>, done: (id?: string | null) => void) {
+  // Si la acción lleva a otra pantalla, el botón sigue ocupado hasta que se abra.
+  async function run(task: () => ReturnType<typeof call>, done: (id?: string | null) => void, navigates = false) {
     setBusy(true);
     setMessage("");
     const result = await task();
-    setBusy(false);
+    if (!result.ok || !navigates) setBusy(false);
     if (result.ok) done(result.data.id);
     else setMessage(result.message);
   }
@@ -93,6 +94,7 @@ export function ActionEditor(props: Props) {
         dueDate: newDue || null,
       }),
       (id) => router.push(id ? `/acciones/${id}` : "/acciones"),
+      true,
     );
 
   return (
@@ -126,7 +128,7 @@ export function ActionEditor(props: Props) {
       </div>
       <p>
         <button type="button" disabled={busy} aria-busy={busy} onClick={save}>
-          Guardar cambios
+          {busy ? "Guardando…" : "Guardar cambios"}
         </button>{" "}
         <button type="button" disabled={busy} onClick={() => setMode(mode === "replace" ? null : "replace")}>
           Reemplazar
@@ -141,8 +143,8 @@ export function ActionEditor(props: Props) {
           <label>
             Motivo <input value={reason} onChange={(e) => setReason(e.target.value)} />
           </label>
-          <button type="button" disabled={busy || reason.trim() === ""} onClick={retire}>
-            Confirmar retiro
+          <button type="button" disabled={busy || reason.trim() === ""} aria-busy={busy} onClick={retire}>
+            {busy ? "Retirando…" : "Confirmar retiro"}
           </button>
         </div>
       )}
@@ -165,8 +167,8 @@ export function ActionEditor(props: Props) {
               Fecha de compromiso <input type="date" value={newDue} onChange={(e) => setNewDue(e.target.value)} required />
             </label>
           </div>
-          <button type="button" disabled={busy || newTitle.trim() === "" || newDue === ""} onClick={replace}>
-            Confirmar reemplazo
+          <button type="button" disabled={busy || newTitle.trim() === "" || newDue === ""} aria-busy={busy} onClick={replace}>
+            {busy ? "Reemplazando…" : "Confirmar reemplazo"}
           </button>
         </div>
       )}
