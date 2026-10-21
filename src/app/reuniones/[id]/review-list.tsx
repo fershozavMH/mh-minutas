@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PersonPicker, type PersonOption } from "../../person-picker";
+import { useBusy } from "../../use-busy";
 
 export type ReviewRow = {
   id: string;
@@ -48,13 +48,12 @@ async function decide(row: ReviewRow, body: unknown): Promise<string | null> {
 const label = (row: ReviewRow) => (row.kind === "ACTION" ? row.title : row.text);
 
 export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: PersonOption[] }) {
-  const router = useRouter();
   const [values, setValues] = useState<Record<string, ReviewRow>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<Set<string>>(new Set());
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, setBusy, refresh } = useBusy();
   const [message, setMessage] = useState("");
 
   const current = (row: ReviewRow) => values[row.id] ?? row;
@@ -93,7 +92,7 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
     setMessage(
       `${done} ${verb}${failed.length ? `. No se pudo en ${failed.length}: ${failed.join("; ")}` : "."}`,
     );
-    router.refresh();
+    refresh();
   }
 
   const approveSelected = () =>

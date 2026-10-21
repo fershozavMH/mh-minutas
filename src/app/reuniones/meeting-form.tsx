@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HelpTip } from "../help-tip";
+import { useBusy } from "../use-busy";
 
 type Level = { id: string; name: string; isSensitive: boolean };
 
@@ -15,10 +15,9 @@ const errors: Record<string, string> = {
 };
 
 export function MeetingForm({ levels }: { levels: Level[] }) {
-  const router = useRouter();
   const [levelId, setLevelId] = useState("");
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, setBusy, refresh } = useBusy();
   const selected = levels.find((level) => level.id === levelId);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -38,7 +37,7 @@ export function MeetingForm({ levels }: { levels: Level[] }) {
       formElement.reset();
       setLevelId("");
       setMessage("Reunión creada.");
-      router.refresh();
+      refresh();
     } else {
       const data = (await response?.json().catch(() => ({}))) as { error?: string } | undefined;
       setMessage(errors[data?.error ?? ""] ?? "No se pudo crear la reunión.");

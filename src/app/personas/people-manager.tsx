@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useBusy } from "../use-busy";
 
 type Row = { id: string; name: string; email: string; active: boolean };
 
@@ -26,11 +26,10 @@ async function call(url: string, method: string, body: unknown): Promise<string 
 }
 
 function PersonRow({ row, canManage }: { row: Row; canManage: boolean }) {
-  const router = useRouter();
   const [name, setName] = useState(row.name);
   const [email, setEmail] = useState(row.email);
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, setBusy, refresh } = useBusy();
 
   async function save(changes: unknown) {
     setBusy(true);
@@ -38,7 +37,7 @@ function PersonRow({ row, canManage }: { row: Row; canManage: boolean }) {
     const problem = await call(`/api/people/${row.id}`, "PATCH", changes);
     setBusy(false);
     if (problem) setMessage(problem);
-    else router.refresh();
+    else refresh();
   }
 
   if (!canManage) {
@@ -68,8 +67,8 @@ function PersonRow({ row, canManage }: { row: Row; canManage: boolean }) {
       </td>
       <td>{row.active ? "Activa" : "Inactiva"}</td>
       <td>
-        <button type="button" disabled={busy} onClick={() => save({ name, email })}>
-          Guardar
+        <button type="button" disabled={busy} aria-busy={busy} onClick={() => save({ name, email })}>
+          {busy ? "Guardando…" : "Guardar"}
         </button>{" "}
         <button type="button" disabled={busy} onClick={() => save({ active: !row.active })}>
           {row.active ? "Desactivar" : "Activar"}
@@ -81,9 +80,8 @@ function PersonRow({ row, canManage }: { row: Row; canManage: boolean }) {
 }
 
 export function PeopleManager({ rows, canManage }: { rows: Row[]; canManage: boolean }) {
-  const router = useRouter();
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, setBusy, refresh } = useBusy();
 
   async function add(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,7 +97,7 @@ export function PeopleManager({ rows, canManage }: { rows: Row[]; canManage: boo
     }
     formElement.reset();
     setMessage("Persona agregada.");
-    router.refresh();
+    refresh();
   }
 
   return (
@@ -135,7 +133,7 @@ export function PeopleManager({ rows, canManage }: { rows: Row[]; canManage: boo
             </label>
           </div>
           <button type="submit" disabled={busy} aria-busy={busy}>
-            Agregar
+            {busy ? "Agregando…" : "Agregar"}
           </button>
           {message && <p role="status">{message}</p>}
         </form>

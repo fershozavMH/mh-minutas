@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PersonPicker, type PersonOption } from "../../person-picker";
+import { useBusy } from "../../use-busy";
 
 type Props = {
   id: string;
@@ -50,7 +51,7 @@ export function ActionEditor(props: Props) {
   const [newTitle, setNewTitle] = useState("");
   const [newOwner, setNewOwner] = useState({ ownerId: "", ownerName: "" });
   const [newDue, setNewDue] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, setBusy, refresh } = useBusy();
   const [message, setMessage] = useState("");
 
   async function run(task: () => ReturnType<typeof call>, done: (id?: string | null) => void) {
@@ -73,14 +74,14 @@ export function ActionEditor(props: Props) {
         }),
       () => {
         setMessage("Cambios guardados.");
-        router.refresh();
+        refresh();
       },
     );
 
   const retire = () =>
     run(
       () => call(`/api/actions/${props.id}/retire`, "POST", { reason }),
-      () => router.refresh(),
+      () => refresh(),
     );
 
   const replace = () =>

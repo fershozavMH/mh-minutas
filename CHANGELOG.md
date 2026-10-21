@@ -2,6 +2,7 @@
 
 ## Sin liberar
 
+- Carga visible en Personas y demás formularios: el indicador dura al menos 400 ms y se mantiene hasta que llegan los datos nuevos (hook `useBusy`).
 - Documentación: README con variables y pantallas, guía para las asistentes y decisiones de arquitectura (ADR-001 a ADR-009).
 - Indicadores de carga: botones que trabajan se atenúan, muestran un giro y no aceptan clics repetidos (alta de usuarios, niveles y estados, entrada y salida de sesión); aviso de espera en la propuesta de la IA.
 - Revisión de seguridad y accesibilidad (parcial): tope diario de propuestas de la IA por persona (AI_DAILY_LIMIT, 30 por defecto), descarte de propuestas duplicadas por solicitudes simultáneas, cabeceras de seguridad, etiqueta en el campo de edición y encabezados de tabla con alcance.

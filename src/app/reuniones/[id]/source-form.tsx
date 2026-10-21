@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HelpTip } from "../../help-tip";
+import { useBusy } from "../../use-busy";
 
 const errors: Record<string, string> = {
   duplicado: "Ese mismo texto ya está cargado en esta reunión.",
@@ -14,11 +14,10 @@ const errors: Record<string, string> = {
 };
 
 export function SourceForm({ meetingId }: { meetingId: string }) {
-  const router = useRouter();
   const [text, setText] = useState("");
   const [origin, setOrigin] = useState("Texto pegado");
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, setBusy, refresh } = useBusy();
 
   async function onFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -42,7 +41,7 @@ export function SourceForm({ meetingId }: { meetingId: string }) {
       setText("");
       setOrigin("Texto pegado");
       setMessage("Transcript guardado.");
-      router.refresh();
+      refresh();
     } else {
       const data = (await response?.json().catch(() => ({}))) as { error?: string } | undefined;
       setMessage(errors[data?.error ?? ""] ?? "No se pudo guardar el transcript.");
