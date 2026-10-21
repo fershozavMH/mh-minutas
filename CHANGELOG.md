@@ -26,3 +26,7 @@
 ## T-12
 - Pedir propuesta a la IA por transcript (`POST /api/meetings/[id]/sources/[sourceId]/propose`): salida estructurada validada con zod, guardada como ReviewItem pendiente.
 - Una reunión de nivel sensible se corta antes de crear el cliente de la IA; nada se envía.
+
+## T-13
+- Prueba de frontera: solo `data/proposals.ts` puede usar la IA y corta el nivel sensible antes de crear el cliente.
+- El intento de enviar a la IA una reunión sensible queda en la auditoría (`AiBlocked`), sin contenido.

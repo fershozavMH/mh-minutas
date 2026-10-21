@@ -25,7 +25,11 @@ export async function requestProposal(
     include: { meeting: { select: { id: true, level: { select: { isSensitive: true } } } } },
   });
   if (!source) return { ok: false, error: "no_existe" };
-  if (source.meeting.level.isSensitive) return { ok: false, error: "nivel_sensible" };
+  if (source.meeting.level.isSensitive) {
+    // El intento queda registrado (sin contenido) para poder revisarlo en la auditoría.
+    await db.auditLog.create({ data: { userId: viewer.id, kind: "READ", entity: "AiBlocked", entityId: sourceId } });
+    return { ok: false, error: "nivel_sensible" };
+  }
   if ((await db.reviewItem.count({ where: { sourceId } })) > 0) return { ok: false, error: "ya_propuesto" };
 
   let client: AiClient;

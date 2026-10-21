@@ -187,9 +187,32 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     expect(await requestProposal(viewers.a1, ids.m2, sensitiveId, { client })).toEqual({ ok: false, error: "nivel_sensible" });
     expect(create).toHaveBeenCalledTimes(1);
     expect(await db.reviewItem.count({ where: { sourceId: sensitiveId } })).toBe(0);
+    // Queda en la auditoría, sin contenido.
+    expect(await db.auditLog.count({ where: { userId: ids.a1, entity: "AiBlocked", entityId: sensitiveId } })).toBe(1);
 
     expect(await requestProposal(viewers.a1, ids.m3, sourceId, { client })).toEqual({ ok: false, error: "no_existe" });
     expect(await requestProposal(viewers.d2, ids.m3, sourceId, { client })).toEqual({ ok: false, error: "sin_permiso" });
     expect(await requestProposal(viewers.admin, ids.m3, sourceId, { client })).toEqual({ ok: false, error: "sin_permiso" });
+  });
+  it("un nivel sensible no llega a la IA: ni cliente, ni red, ni con clave configurada", async () => {
+    const { addSource } = await import("./sources");
+    const { requestProposal } = await import("./proposals");
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const previousKey = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "clave-falsa-de-prueba";
+    try {
+      const saved = await addSource(viewers.a1, ids.m2, { origin: "t", text: `${run} secreto de nivel sensible` });
+      const sourceId = saved.ok ? saved.id : "";
+      fetchSpy.mockClear();
+
+      // Sin cliente inyectado: si se llegara a crear uno real, saldría una petición a la red.
+      expect(await requestProposal(viewers.a1, ids.m2, sourceId)).toEqual({ ok: false, error: "nivel_sensible" });
+      expect(fetchSpy.mock.calls.filter(([url]) => String(url).includes("anthropic"))).toHaveLength(0);
+      expect(await db.reviewItem.count({ where: { sourceId } })).toBe(0);
+    } finally {
+      fetchSpy.mockRestore();
+      if (previousKey === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = previousKey;
+    }
   });
 });
