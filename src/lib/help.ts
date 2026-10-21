@@ -19,6 +19,8 @@ export const help = {
     "Aquí están las acciones oficiales: las que una persona aprobó. Cada una tiene responsable, fecha de compromiso y estado. Nunca se borran: se retiran con un motivo o se reemplazan por otra.",
   history:
     "Cada cambio guarda quién lo hizo, cuándo y el valor anterior, para poder explicar por qué una fecha o un responsable cambió.",
+  people:
+    "Las personas que pueden ser responsables de una acción, tengan o no inicio de sesión. El correo es opcional, pero sin él la persona no recibirá recordatorios. Una persona no se borra: se desactiva y deja de aparecer al elegir responsable.",
   sensitive: "Una reunión de nivel sensible nunca se envía a la IA y su ficha se captura a mano.",
 } as const;
 

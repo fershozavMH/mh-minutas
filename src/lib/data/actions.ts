@@ -4,6 +4,7 @@ import { addDays, type ActionFilters, dayStart, todayInHermosillo } from "../act
 import { actionWhere, type Viewer } from "../access";
 import { getDb } from "../db";
 import { recordSensitiveReads } from "./audit";
+import { resolveOwner } from "./owner";
 
 // Los filtros se suman al filtro de visibilidad; nunca lo reemplazan.
 function filterWhere(filters: ActionFilters): Prisma.ActionWhereInput {
@@ -73,7 +74,7 @@ export async function listRetiredActions(viewer: Viewer) {
 
 export type ActionChangeResult =
   | { ok: true; id?: string }
-  | { ok: false; error: "sin_permiso" | "no_existe" | "retirada" | "sin_cambios" | "estado_invalido" | "sin_estado" };
+  | { ok: false; error: "sin_permiso" | "no_existe" | "retirada" | "sin_cambios" | "estado_invalido" | "sin_estado" | "persona_invalida" };
 
 const day = (date: Date | null) => (date ? date.toISOString().slice(0, 10) : null);
 
@@ -96,9 +97,15 @@ export async function updateAction(viewer: Viewer, id: string, input: UpdateActi
     data.title = input.title;
     changes.push({ field: "title", oldValue: action.title, newValue: input.title });
   }
-  if (input.ownerName !== undefined && input.ownerName !== action.ownerName) {
-    data.ownerName = input.ownerName;
-    changes.push({ field: "ownerName", oldValue: action.ownerName, newValue: input.ownerName });
+  if (input.ownerId !== undefined || input.ownerName !== undefined) {
+    // Con persona del registro manda su nombre; sin ella queda el texto libre.
+    const owner = await resolveOwner(input.ownerId, input.ownerName, action.ownerId);
+    if (!owner.ok) return { ok: false, error: "persona_invalida" };
+    if (owner.ownerName !== action.ownerName) {
+      data.ownerName = owner.ownerName;
+      changes.push({ field: "ownerName", oldValue: action.ownerName, newValue: owner.ownerName });
+    }
+    if (owner.ownerId !== action.ownerId) data.ownerId = owner.ownerId;
   }
   if (input.dueDate !== undefined && input.dueDate !== day(action.dueDate)) {
     const due = new Date(`${input.dueDate}T12:00:00.000Z`);
@@ -146,13 +153,16 @@ export async function retireAction(viewer: Viewer, id: string, reason: string): 
 export async function replaceAction(
   viewer: Viewer,
   id: string,
-  value: { title: string; ownerName: string | null; dueDate: string },
+  value: { title: string; ownerName: string | null; ownerId?: string | null; dueDate: string },
 ): Promise<ActionChangeResult> {
   if (viewer.profile !== "ASSISTANT") return { ok: false, error: "sin_permiso" };
 
   const db = getDb();
   const old = await db.action.findFirst({ where: { AND: [{ id }, actionWhere(viewer)] } });
   if (!old) return { ok: false, error: "no_existe" };
+
+  const owner = await resolveOwner(value.ownerId, value.ownerName);
+  if (!owner.ok) return { ok: false, error: "persona_invalida" };
 
   const status = await db.actionStatus.findFirst({
     where: { active: true },
@@ -171,7 +181,8 @@ export async function replaceAction(
     const created = await db.action.create({
       data: {
         title: value.title,
-        ownerName: value.ownerName,
+        ownerName: owner.ownerName,
+        ownerId: owner.ownerId,
         dueDate: due,
         actionDate: due,
         statusId: status.id,

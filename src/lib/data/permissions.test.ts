@@ -80,6 +80,7 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     await db.meeting.deleteMany({ where: { createdById: { in: userIds } } });
     await db.user.deleteMany({ where: { id: { in: userIds.filter((id) => id !== ids.d1 && id !== ids.d2) } } });
     await db.user.deleteMany({ where: { id: { in: [ids.d1, ids.d2] } } });
+    await db.person.deleteMany({ where: { name: { startsWith: run } } });
     await db.actionStatus.deleteMany({ where: { id: ids.status } });
     await db.level.deleteMany({ where: { id: { in: [ids.low, ids.high] } } });
     await db.$disconnect();
@@ -361,5 +362,54 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     expect(await list("admin", { owner: "Daray Filtro" })).toEqual([]);
 
     await db.action.deleteMany({ where: { id: { in: [past.id, future.id, none.id, others.id] } } });
+  });
+  it("personas: se registran sin borrarse y su nombre manda en las acciones", async () => {
+    const people = await import("./people");
+    const api = await import("./actions");
+    const email = `${run}-persona@correo.com`;
+
+    // Permisos
+    expect(await people.createPerson(viewers.d1, { name: `${run} Directivo`, email: null })).toEqual({ ok: false, error: "sin_permiso" });
+    const created = await people.createPerson(viewers.a2, { name: `${run} Daray`, email });
+    expect(created.ok).toBe(true);
+    const personId = created.ok ? created.id : "";
+    expect(await people.createPerson(viewers.admin, { name: `${run} Otra`, email })).toEqual({ ok: false, error: "correo_repetido" });
+    // Sin correo se puede, y dos personas sin correo no chocan
+    expect((await people.createPerson(viewers.admin, { name: `${run} Sin correo 1`, email: null })).ok).toBe(true);
+    expect((await people.createPerson(viewers.admin, { name: `${run} Sin correo 2`, email: null })).ok).toBe(true);
+
+    // Una acción con responsable del registro toma su nombre
+    const action = await db.action.create({
+      data: { title: `${run}-con-persona`, dueDate: new Date("2026-11-02T12:00:00Z"), statusId: ids.status, levelId: ids.low, meetingId: ids.m3, createdById: ids.a2 },
+    });
+    expect(await api.updateAction(viewers.a2, action.id, { ownerId: personId })).toEqual({ ok: true });
+    let saved = await db.action.findUnique({ where: { id: action.id } });
+    expect(saved).toMatchObject({ ownerId: personId, ownerName: `${run} Daray` });
+    expect(await api.updateAction(viewers.a2, action.id, { ownerId: "no-existe" })).toEqual({ ok: false, error: "persona_invalida" });
+
+    // Cambiar el nombre en el registro actualiza el de sus acciones
+    expect((await people.updatePerson(viewers.admin, personId, { name: `${run} Daray A.` })).ok).toBe(true);
+    saved = await db.action.findUnique({ where: { id: action.id } });
+    expect(saved?.ownerName).toBe(`${run} Daray A.`);
+    expect(await people.updatePerson(viewers.d1, personId, { name: "x" })).toEqual({ ok: false, error: "sin_permiso" });
+    expect(await people.updatePerson(viewers.admin, personId, { name: `${run} Daray A.` })).toEqual({ ok: false, error: "sin_cambios" });
+
+    // Desactivar: ya no se puede asignar a otra acción, pero la que ya lo tiene la conserva
+    expect((await people.updatePerson(viewers.admin, personId, { active: false })).ok).toBe(true);
+    expect((await people.listPeople()).some((p) => p.id === personId)).toBe(false);
+    expect((await people.listPeople({ includeInactive: true })).some((p) => p.id === personId)).toBe(true);
+    const other = await db.action.create({
+      data: { title: `${run}-otra`, dueDate: new Date("2026-11-02T12:00:00Z"), statusId: ids.status, levelId: ids.low, meetingId: ids.m3, createdById: ids.a2 },
+    });
+    expect(await api.updateAction(viewers.a2, other.id, { ownerId: personId })).toEqual({ ok: false, error: "persona_invalida" });
+    expect(await api.updateAction(viewers.a2, action.id, { title: `${run}-con-persona-2`, ownerId: personId })).toEqual({ ok: true });
+
+    // Texto libre: quita la persona del registro
+    expect(await api.updateAction(viewers.a2, action.id, { ownerId: null, ownerName: "Alguien nuevo" })).toEqual({ ok: true });
+    saved = await db.action.findUnique({ where: { id: action.id } });
+    expect(saved).toMatchObject({ ownerId: null, ownerName: "Alguien nuevo" });
+
+    await db.changeLog.deleteMany({ where: { actionId: { in: [action.id, other.id] } } });
+    await db.action.deleteMany({ where: { id: { in: [action.id, other.id] } } });
   });
 });

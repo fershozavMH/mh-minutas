@@ -48,3 +48,8 @@
 ## T-17
 - Filtros en la lista de acciones: estado, compromiso (vencidas, próximos 7 días, sin fecha), reunión y responsable. Se suman a la visibilidad por nivel y nunca la reemplazan.
 - La IA recibe la fecha de la reunión como referencia para convertir fechas dichas sin año («el viernes 23 de octubre») a AAAA-MM-DD; si es ambigua, devuelve null.
+
+## T-22
+- Registro de personas (`/personas`): nombre y correo opcional; se desactivan, no se borran. Asistentes y Administración las gestionan; el directivo solo consulta.
+- El responsable de una acción se elige del registro (o se escribe un nombre nuevo). Al aprobar una propuesta de la IA se sugiere la persona si el nombre coincide con una sola.
+- Migración `20261021190000_people`: tabla `Person` y columna opcional `Action.ownerId`. Reversible: no cambia ni borra datos existentes.

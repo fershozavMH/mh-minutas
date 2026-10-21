@@ -18,6 +18,12 @@ export const actionValueSchema = z.object({
     .max(120)
     .nullish()
     .transform((value) => (value ? value : null)),
+  // Persona del registro; si viene, su nombre manda sobre ownerName.
+  ownerId: z
+    .string()
+    .min(1)
+    .nullish()
+    .transform((value) => value ?? null),
   dueDate: z.string().refine(isRealDay, { message: "fecha_obligatoria" }),
 });
 

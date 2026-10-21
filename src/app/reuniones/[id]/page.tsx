@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/current-user";
 import { getMeeting } from "@/lib/data/meetings";
+import { listPeople } from "@/lib/data/people";
+import { matchPerson } from "@/lib/person-match";
 import { HelpTip } from "../../help-tip";
 import { SignOutButton } from "../../sign-out-button";
 import { ProposeButton } from "./propose-button";
@@ -22,7 +24,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   if (user.profile === "ADMIN") redirect("/");
 
   const { id } = await params;
-  const meeting = await getMeeting(user, id);
+  const [meeting, people] = await Promise.all([getMeeting(user, id), listPeople()]);
   if (!meeting) notFound();
 
   const canUpload = user.profile === "ASSISTANT";
@@ -31,7 +33,10 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const proposed = new Set(meeting.reviewItems.map((item) => item.sourceId));
   const asRow = (item: (typeof meeting.reviewItems)[number]): ReviewRow => {
     const value = (item.editedValue ?? item.aiValue) as Record<string, string | null>;
+    // Si el nombre dicho en la reunión coincide con una sola persona del registro, se sugiere.
+    const ownerId = item.kind === "ACTION" ? (value.ownerId ?? matchPerson(value.ownerName, people) ?? "") : "";
     return {
+      ownerId,
       id: item.id,
       kind: item.kind,
       text: value.text ?? "",
@@ -86,7 +91,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           <h2>
             Propuestas por revisar <HelpTip topic="review" label="Revisar propuestas" />
           </h2>
-          {canUpload ? <ReviewList rows={pendingRows} /> : <p>{pending} propuestas pendientes de revisión.</p>}
+          {canUpload ? <ReviewList rows={pendingRows} people={people.map((p) => ({ id: p.id, name: p.name }))} /> : <p>{pending} propuestas pendientes de revisión.</p>}
         </>
       )}
       {decided.length > 0 && (

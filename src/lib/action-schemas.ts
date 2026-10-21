@@ -12,6 +12,7 @@ export const updateActionSchema = z
       .nullish()
       .transform((value) => (value ? value : null))
       .optional(),
+    ownerId: z.string().min(1).nullable().optional(),
     dueDate: z.string().refine(isRealDay, { message: "fecha_obligatoria" }).optional(),
     statusId: z.string().min(1).optional(),
   })

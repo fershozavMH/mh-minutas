@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/current-user";
 import { getAction, getActionHistory } from "@/lib/data/actions";
+import { listPeople } from "@/lib/data/people";
 import { listActiveStatuses } from "@/lib/data/statuses";
 import { HelpTip } from "../../help-tip";
 import { SignOutButton } from "../../sign-out-button";
@@ -33,7 +34,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const action = await getAction(user, id);
   if (!action) notFound();
-  const [rawHistory, statuses] = await Promise.all([getActionHistory(user, id), listActiveStatuses()]);
+  const [rawHistory, statuses, people] = await Promise.all([getActionHistory(user, id), listActiveStatuses(), listPeople()]);
   const history = rawHistory ?? [];
 
   const canEdit = user.profile === "ASSISTANT" && !action.retiredAt;
@@ -58,6 +59,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           id={action.id}
           title={action.title}
           ownerName={action.ownerName ?? ""}
+          ownerId={action.ownerId ?? ""}
+          people={people.map((p) => ({ id: p.id, name: p.name }))}
           dueDate={action.dueDate ? action.dueDate.toISOString().slice(0, 10) : ""}
           statusId={action.statusId}
           statuses={statusOptions.map((s) => ({ id: s.id, name: s.name }))}

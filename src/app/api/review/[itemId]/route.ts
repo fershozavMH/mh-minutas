@@ -9,6 +9,7 @@ const statuses = {
   valor_invalido: 400,
   fecha_obligatoria: 400,
   sin_estado: 503,
+  persona_invalida: 400,
 } as const;
 
 export async function POST(request: Request, { params }: { params: Promise<{ itemId: string }> }) {

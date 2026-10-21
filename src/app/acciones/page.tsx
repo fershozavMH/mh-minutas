@@ -126,7 +126,7 @@ export default function ActionsPage({
     <main>
       <h1>Acciones</h1>
       <p>
-        <Link href="/">Inicio</Link> <Link href="/reuniones">Reuniones</Link> <SignOutButton />
+        <Link href="/">Inicio</Link> <Link href="/reuniones">Reuniones</Link> <Link href="/personas">Personas</Link> <SignOutButton />
       </p>
       <Suspense fallback={<p>Cargando…</p>}>
         <Actions searchParams={searchParams} />

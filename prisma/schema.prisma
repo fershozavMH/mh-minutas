@@ -160,11 +160,28 @@ model ReviewItem {
   @@index([sourceId])
 }
 
+// Quien puede ser responsable de una acción, tenga o no inicio de sesión.
+// Una persona se desactiva, no se borra. Si su correo coincide con el de un usuario, es la misma persona.
+model Person {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  actions Action[]
+
+  @@index([name])
+}
+
 // Acción oficial. Nunca se borra: se retira o se reemplaza.
 model Action {
   id            String    @id @default(cuid())
   title         String
+  // Texto del responsable; si hay ownerId, es el nombre de esa persona.
   ownerName     String?
+  ownerId       String?
   // Fecha de compromiso y fecha en que debe aparecer en la vista principal.
   dueDate       DateTime?
   actionDate    DateTime?
@@ -183,6 +200,7 @@ model Action {
   status      ActionStatus @relation(fields: [statusId], references: [id])
   level       Level        @relation(fields: [levelId], references: [id])
   meeting     Meeting?     @relation(fields: [meetingId], references: [id])
+  owner       Person?      @relation(fields: [ownerId], references: [id])
   createdBy   User         @relation(fields: [createdById], references: [id])
   replacedBy  Action?      @relation("ActionReplacement", fields: [replacedById], references: [id])
   replaces    Action?      @relation("ActionReplacement")
@@ -194,6 +212,7 @@ model Action {
   @@index([statusId])
   @@index([meetingId])
   @@index([dueDate])
+  @@index([ownerId])
 }
 
 // Cada cambio guarda autor, fecha y valor anterior.

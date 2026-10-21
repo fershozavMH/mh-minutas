@@ -1,13 +1,14 @@
 import { Prisma } from "../../generated/prisma/client";
 import { meetingWhere, type Viewer } from "../access";
 import { getDb } from "../db";
+import { resolveOwner } from "./owner";
 import { actionValueSchema, type Decision, textValueSchema } from "../review-schemas";
 
 export type DecideResult =
   | { ok: true; actionId?: string }
   | {
       ok: false;
-      error: "sin_permiso" | "no_existe" | "ya_decidido" | "valor_invalido" | "fecha_obligatoria" | "sin_estado";
+      error: "sin_permiso" | "no_existe" | "ya_decidido" | "valor_invalido" | "fecha_obligatoria" | "sin_estado" | "persona_invalida";
     };
 
 type Card = { summary?: string; decisions?: string[]; risks?: string[]; nextSteps?: string[] };
@@ -42,7 +43,9 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
 
   // Aprobar: se valida lo que quedó (lo editado o, si no se tocó, lo que propuso la IA).
   const finalValue = decision.value ?? (item.aiValue as Record<string, unknown>);
-  const edited = decision.value !== undefined && JSON.stringify(decision.value) !== JSON.stringify(item.aiValue);
+  // Elegir a la persona del registro no cuenta como edición por sí solo.
+  const withoutOwnerId = (value: Record<string, unknown>) => JSON.stringify({ ...value, ownerId: undefined });
+  const edited = decision.value !== undefined && withoutOwnerId(decision.value) !== withoutOwnerId(item.aiValue as Record<string, unknown>);
 
   let actionValue: ReturnType<typeof actionValueSchema.parse> | undefined;
   let text: string | undefined;
@@ -52,7 +55,9 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
       const missingDate = parsed.error.issues.some((i) => i.path[0] === "dueDate");
       return { ok: false, error: missingDate ? "fecha_obligatoria" : "valor_invalido" };
     }
-    actionValue = parsed.data;
+    const owner = await resolveOwner(parsed.data.ownerId, parsed.data.ownerName);
+    if (!owner.ok) return { ok: false, error: "persona_invalida" };
+    actionValue = { ...parsed.data, ownerId: owner.ownerId, ownerName: owner.ownerName };
   } else {
     const parsed = textValueSchema.safeParse(finalValue);
     if (!parsed.success) return { ok: false, error: "valor_invalido" };
@@ -88,6 +93,7 @@ export async function decideReview(viewer: Viewer, itemId: string, decision: Dec
         data: {
           title: actionValue.title,
           ownerName: actionValue.ownerName,
+          ownerId: actionValue.ownerId,
           dueDate: due,
           actionDate: due,
           statusId,

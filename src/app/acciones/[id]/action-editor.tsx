@@ -2,14 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PersonPicker, type PersonOption } from "../../person-picker";
 
 type Props = {
   id: string;
   title: string;
   ownerName: string;
+  ownerId: string;
   dueDate: string;
   statusId: string;
   statuses: { id: string; name: string }[];
+  people: PersonOption[];
 };
 
 const errors: Record<string, string> = {
@@ -21,6 +24,7 @@ const errors: Record<string, string> = {
   no_existe: "Esta acción ya no está disponible.",
   sin_permiso: "Tu perfil no puede cambiar acciones.",
   sin_estado: "No hay estados activos; avisa a Administración.",
+  persona_invalida: "Esa persona ya no está disponible.",
   sin_sesion: "Tu sesión terminó; vuelve a entrar.",
 };
 
@@ -38,13 +42,13 @@ async function call(url: string, method: string, body: unknown) {
 export function ActionEditor(props: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(props.title);
-  const [owner, setOwner] = useState(props.ownerName);
+  const [owner, setOwner] = useState({ ownerId: props.ownerId, ownerName: props.ownerName });
   const [due, setDue] = useState(props.dueDate);
   const [statusId, setStatusId] = useState(props.statusId);
   const [mode, setMode] = useState<"retire" | "replace" | null>(null);
   const [reason, setReason] = useState("");
   const [newTitle, setNewTitle] = useState("");
-  const [newOwner, setNewOwner] = useState("");
+  const [newOwner, setNewOwner] = useState({ ownerId: "", ownerName: "" });
   const [newDue, setNewDue] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -60,7 +64,13 @@ export function ActionEditor(props: Props) {
 
   const save = () =>
     run(
-      () => call(`/api/actions/${props.id}`, "PATCH", { title, ownerName: owner || null, dueDate: due || "", statusId }),
+      () => call(`/api/actions/${props.id}`, "PATCH", {
+          title,
+          ownerId: owner.ownerId || null,
+          ownerName: owner.ownerId ? null : owner.ownerName || null,
+          dueDate: due || "",
+          statusId,
+        }),
       () => {
         setMessage("Cambios guardados.");
         router.refresh();
@@ -75,7 +85,12 @@ export function ActionEditor(props: Props) {
 
   const replace = () =>
     run(
-      () => call(`/api/actions/${props.id}/replace`, "POST", { title: newTitle, ownerName: newOwner || null, dueDate: newDue || null }),
+      () => call(`/api/actions/${props.id}/replace`, "POST", {
+        title: newTitle,
+        ownerId: newOwner.ownerId || null,
+        ownerName: newOwner.ownerId ? null : newOwner.ownerName || null,
+        dueDate: newDue || null,
+      }),
       (id) => router.push(id ? `/acciones/${id}` : "/acciones"),
     );
 
@@ -88,7 +103,7 @@ export function ActionEditor(props: Props) {
       </div>
       <div className="field">
         <label>
-          Responsable <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Sin responsable" />
+          Responsable <PersonPicker people={props.people} value={owner} onChange={setOwner} />
         </label>
       </div>
       <div className="field">
@@ -141,7 +156,7 @@ export function ActionEditor(props: Props) {
           </div>
           <div className="field">
             <label>
-              Responsable <input value={newOwner} onChange={(e) => setNewOwner(e.target.value)} placeholder="Sin responsable" />
+              Responsable <PersonPicker people={props.people} value={newOwner} onChange={setNewOwner} />
             </label>
           </div>
           <div className="field">

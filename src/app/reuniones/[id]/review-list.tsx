@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PersonPicker, type PersonOption } from "../../person-picker";
 
 export type ReviewRow = {
   id: string;
@@ -9,6 +10,7 @@ export type ReviewRow = {
   text: string;
   title: string;
   ownerName: string;
+  ownerId: string;
   dueDate: string;
 };
 
@@ -27,6 +29,7 @@ const errors: Record<string, string> = {
   no_existe: "ya no está disponible",
   sin_permiso: "tu perfil no puede decidir",
   sin_estado: "no hay estados de acción activos",
+  persona_invalida: "esa persona ya no está disponible",
   datos_invalidos: "datos inválidos",
   sin_sesion: "tu sesión terminó",
 };
@@ -44,7 +47,7 @@ async function decide(row: ReviewRow, body: unknown): Promise<string | null> {
 
 const label = (row: ReviewRow) => (row.kind === "ACTION" ? row.title : row.text);
 
-export function ReviewList({ rows }: { rows: ReviewRow[] }) {
+export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: PersonOption[] }) {
   const router = useRouter();
   const [values, setValues] = useState<Record<string, ReviewRow>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -55,6 +58,8 @@ export function ReviewList({ rows }: { rows: ReviewRow[] }) {
   const [message, setMessage] = useState("");
 
   const current = (row: ReviewRow) => values[row.id] ?? row;
+  const ownerLabel = (row: ReviewRow) =>
+    people.find((p) => p.id === row.ownerId)?.name || row.ownerName || "Sin responsable";
   const patch = (row: ReviewRow, changes: Partial<ReviewRow>) =>
     setValues((all) => ({ ...all, [row.id]: { ...current(row), ...changes } }));
   // Una acción sin fecha no se puede aprobar: la casilla queda bloqueada hasta que la tenga.
@@ -98,7 +103,7 @@ export function ReviewList({ rows }: { rows: ReviewRow[] }) {
           decision: "approve",
           value:
             row.kind === "ACTION"
-              ? { title: row.title, ownerName: row.ownerName || null, dueDate: row.dueDate }
+              ? { title: row.title, ownerName: row.ownerId ? null : row.ownerName || null, ownerId: row.ownerId || null, dueDate: row.dueDate }
               : { text: row.text },
         }),
       "aprobadas",
@@ -148,10 +153,10 @@ export function ReviewList({ rows }: { rows: ReviewRow[] }) {
                       <div className="field">
                         <label>
                           Responsable{" "}
-                          <input
-                            value={value.ownerName}
-                            placeholder="Sin responsable"
-                            onChange={(e) => patch(row, { ownerName: e.target.value })}
+                          <PersonPicker
+                            people={people}
+                            value={{ ownerId: value.ownerId, ownerName: value.ownerName }}
+                            onChange={(owner) => patch(row, owner)}
                           />
                         </label>
                       </div>
@@ -164,7 +169,7 @@ export function ReviewList({ rows }: { rows: ReviewRow[] }) {
                 ) : (
                   <p className="review-text">
                     {row.kind === "ACTION"
-                      ? `${value.title} · ${value.ownerName || "Sin responsable"}`
+                      ? `${value.title} · ${ownerLabel(value)}`
                       : value.text}
                   </p>
                 )}
