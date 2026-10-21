@@ -18,13 +18,17 @@ describe("proposeFromTranscript", () => {
 
   it("devuelve la propuesta validada y pide salida estructurada", async () => {
     const client = clientReturning(text(valid));
-    expect(await proposeFromTranscript(client, "texto", "modelo-x")).toEqual(valid);
+    expect(await proposeFromTranscript(client, "texto", { model: "modelo-x", meetingDate: "2026-10-22" })).toEqual(valid);
 
     const call = vi.mocked(client.messages.create).mock.calls[0][0];
     expect(call.model).toBe("modelo-x");
     expect(call.output_config?.format?.type).toBe("json_schema");
     expect(call.tool_choice).toBeUndefined();
-    expect(String(call.messages[0].content)).toContain("<transcript>\ntexto\n</transcript>");
+    // La fecha de la reunión va como referencia, antes del transcript
+    expect(String(call.messages[0].content)).toBe(
+      "<meeting_date>2026-10-22</meeting_date>\n<transcript>\ntexto\n</transcript>",
+    );
+    expect(String(call.system)).toContain("<meeting_date>");
   });
 
   it("rechaza una respuesta sin texto", async () => {

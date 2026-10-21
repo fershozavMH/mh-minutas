@@ -325,4 +325,41 @@ describe.skipIf(!enabled)("permisos por perfil y nivel", () => {
     await db.action.deleteMany({ where: { id: { in: [a.id, fresh!.id] } } });
     await db.actionStatus.delete({ where: { id: status2.id } });
   });
+  it("filtros de acciones: se suman a la visibilidad y no la reemplazan", async () => {
+    const api = await import("./actions");
+    const mk = (title: string, ownerName: string | null, dueDate: string | null, createdById: string) =>
+      db.action.create({
+        data: {
+          title: `${run}-${title}`,
+          ownerName,
+          dueDate: dueDate ? new Date(`${dueDate}T12:00:00Z`) : null,
+          statusId: ids.status,
+          levelId: ids.low,
+          meetingId: ids.m3,
+          createdById,
+        },
+      });
+    const past = await mk("f-pasada", "Daray Filtro", "2020-01-10", ids.a2);
+    const future = await mk("f-futura", "Otra Persona", "2099-01-10", ids.a2);
+    const none = await mk("f-sinfecha", null, null, ids.a2);
+    const others = await mk("f-ajena", "Daray Filtro", "2020-01-10", ids.a1);
+
+    const list = async (viewer: keyof typeof viewers, filters: Parameters<typeof api.listActions>[1]) =>
+      (await api.listActions(viewers[viewer], filters)).map((a) => a.id);
+
+    expect(await list("a2", { owner: "daray filtro" })).toEqual([past.id]);
+    expect(await list("a2", { due: "overdue", owner: run })).toEqual([]);
+    expect(await list("a2", { due: "overdue" })).toContain(past.id);
+    expect(await list("a2", { due: "overdue" })).not.toContain(future.id);
+    expect(await list("a2", { due: "none" })).toContain(none.id);
+    expect(await list("a2", { statusId: ids.status, meetingId: ids.m3 })).toEqual(expect.arrayContaining([past.id, future.id, none.id]));
+    expect(await list("a2", { statusId: "otro" })).toEqual([]);
+
+    // La visibilidad manda: a2 no ve lo de a1 aunque coincida con el filtro; el directivo de a1 sí.
+    expect(await list("a2", { owner: "Daray Filtro" })).not.toContain(others.id);
+    expect(await list("d1", { owner: "Daray Filtro" })).toEqual([others.id]);
+    expect(await list("admin", { owner: "Daray Filtro" })).toEqual([]);
+
+    await db.action.deleteMany({ where: { id: { in: [past.id, future.id, none.id, others.id] } } });
+  });
 });

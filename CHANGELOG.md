@@ -44,3 +44,7 @@
 - Las propuestas se seleccionan con casillas y se aprueban o rechazan con una sola barra; "Editar" abre los campos solo cuando hace falta.
 - Una acción sin fecha no se puede seleccionar hasta tenerla. Si una propuesta falla, las demás se deciden igual y se avisa cuál falló.
 - Los campos de texto son más anchos para que no corten títulos largos.
+
+## T-17
+- Filtros en la lista de acciones: estado, compromiso (vencidas, próximos 7 días, sin fecha), reunión y responsable. Se suman a la visibilidad por nivel y nunca la reemplazan.
+- La IA recibe la fecha de la reunión como referencia para convertir fechas dichas sin año («el viernes 23 de octubre») a AAAA-MM-DD; si es ambigua, devuelve null.

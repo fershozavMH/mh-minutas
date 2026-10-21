@@ -283,3 +283,18 @@ textarea {
 .field input:not([type="checkbox"]):not([type="date"]) {
   min-width: min(420px, 60vw);
 }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px 16px;
+  margin: 12px 0;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}

@@ -22,7 +22,7 @@ export async function requestProposal(
   const db = getDb();
   const source = await db.source.findFirst({
     where: { id: sourceId, meetingId, meeting: meetingWhere(viewer) },
-    include: { meeting: { select: { id: true, level: { select: { isSensitive: true } } } } },
+    include: { meeting: { select: { id: true, heldAt: true, level: { select: { isSensitive: true } } } } },
   });
   if (!source) return { ok: false, error: "no_existe" };
   if (source.meeting.level.isSensitive) {
@@ -41,7 +41,9 @@ export async function requestProposal(
 
   let proposal;
   try {
-    proposal = await proposeFromTranscript(client, source.normalizedText);
+    proposal = await proposeFromTranscript(client, source.normalizedText, {
+      meetingDate: source.meeting.heldAt.toISOString().slice(0, 10),
+    });
   } catch (error) {
     if (!(error instanceof AiOutputError)) console.error("Error al llamar a la IA", error);
     return { ok: false, error: "ia_fallo" };

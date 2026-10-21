@@ -2,26 +2,76 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/current-user";
+import { parseActionFilters } from "@/lib/action-filters";
 import { listActions, listRetiredActions } from "@/lib/data/actions";
+import { listMeetings } from "@/lib/data/meetings";
+import { listActiveStatuses } from "@/lib/data/statuses";
 import { HelpTip } from "../help-tip";
 import { SignOutButton } from "../sign-out-button";
 
 const dateFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeZone: "UTC" });
 
-async function Actions() {
+async function Actions({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.profile === "ADMIN") redirect("/");
 
-  const [actions, retired] = await Promise.all([listActions(user), listRetiredActions(user)]);
+  const filters = parseActionFilters(await searchParams);
+  const filtered = Object.keys(filters).length > 0;
+  const [actions, retired, statuses, meetings] = await Promise.all([
+    listActions(user, filters),
+    listRetiredActions(user),
+    listActiveStatuses(),
+    listMeetings(user),
+  ]);
 
   return (
     <>
+      <form method="get" className="filters">
+        <label>
+          Estado
+          <select name="status" defaultValue={filters.statusId ?? ""}>
+            <option value="">Todos</option>
+            {statuses.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Compromiso
+          <select name="due" defaultValue={filters.due ?? ""}>
+            <option value="">Cualquiera</option>
+            <option value="overdue">Vencidas</option>
+            <option value="week">Próximos 7 días</option>
+            <option value="none">Sin fecha</option>
+          </select>
+        </label>
+        <label>
+          Reunión
+          <select name="meeting" defaultValue={filters.meetingId ?? ""}>
+            <option value="">Todas</option>
+            {meetings.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Responsable <input name="owner" defaultValue={filters.owner ?? ""} />
+        </label>
+        <button type="submit">Filtrar</button>
+        {filtered && <Link href="/acciones">Quitar filtros</Link>}
+      </form>
       {actions.length === 0 ? (
         <p className="hint">
-          {user.profile === "ASSISTANT"
-            ? "Siguiente paso: aprueba las propuestas de una reunión; cada acción aprobada aparece aquí."
-            : "Aún no hay acciones de tus asistentes."}
+          {filtered
+            ? "Ninguna acción coincide con esos filtros."
+            : user.profile === "ASSISTANT"
+              ? "Siguiente paso: aprueba las propuestas de una reunión; cada acción aprobada aparece aquí."
+              : "Aún no hay acciones de tus asistentes."}
         </p>
       ) : (
         <table>
@@ -67,7 +117,11 @@ async function Actions() {
   );
 }
 
-export default function ActionsPage() {
+export default function ActionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   return (
     <main>
       <h1>Acciones</h1>
@@ -75,7 +129,7 @@ export default function ActionsPage() {
         <Link href="/">Inicio</Link> <Link href="/reuniones">Reuniones</Link> <SignOutButton />
       </p>
       <Suspense fallback={<p>Cargando…</p>}>
-        <Actions />
+        <Actions searchParams={searchParams} />
       </Suspense>
     </main>
   );

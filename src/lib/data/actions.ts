@@ -1,12 +1,28 @@
 import type { Prisma } from "../../generated/prisma/client";
 import type { UpdateActionInput } from "../action-schemas";
+import { addDays, type ActionFilters, dayStart, todayInHermosillo } from "../action-filters";
 import { actionWhere, type Viewer } from "../access";
 import { getDb } from "../db";
 import { recordSensitiveReads } from "./audit";
 
-export async function listActions(viewer: Viewer) {
+// Los filtros se suman al filtro de visibilidad; nunca lo reemplazan.
+function filterWhere(filters: ActionFilters): Prisma.ActionWhereInput {
+  const today = dayStart(todayInHermosillo());
+  const conditions: Prisma.ActionWhereInput[] = [];
+  if (filters.statusId) conditions.push({ statusId: filters.statusId });
+  if (filters.meetingId) conditions.push({ meetingId: filters.meetingId });
+  if (filters.owner) conditions.push({ ownerName: { contains: filters.owner, mode: "insensitive" } });
+  if (filters.due === "none") conditions.push({ dueDate: null });
+  if (filters.due === "overdue") conditions.push({ dueDate: { lt: today }, status: { isClosed: false } });
+  if (filters.due === "week") {
+    conditions.push({ dueDate: { gte: today, lt: dayStart(addDays(todayInHermosillo(), 7)) } });
+  }
+  return { AND: conditions };
+}
+
+export async function listActions(viewer: Viewer, filters: ActionFilters = {}) {
   const actions = await getDb().action.findMany({
-    where: { AND: [actionWhere(viewer), { retiredAt: null }] },
+    where: { AND: [actionWhere(viewer), { retiredAt: null }, filterWhere(filters)] },
     orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
     include: { level: true, status: true, meeting: { select: { id: true, title: true } } },
   });
