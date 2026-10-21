@@ -2,6 +2,7 @@
 
 ## Sin liberar
 
+- Lo cerrado se archiva de la lista de acciones: las completadas o canceladas hace más de 7 días (según su último cambio) no salen, salvo con «Ver cerradas» o filtrando por un estado. Los filtros ahora siguen a la dirección cuando cambia por fuera (por ejemplo, el enlace «Acciones»).
 - Estándar de 6 estados (Pendiente, En progreso, En revisión, En espera, Completado, Cancelado) en los datos de ejemplo; en Administración se pueden renombrar y reordenar estados y niveles. Los estados pueden pedir una nota (En espera y Cancelado): sin nota no se fijan, la nota se ve en la lista y se limpia al salir del estado, con historial. Migración `20261021210000_status_notes` (solo agrega columnas; reversa en el propio archivo).
 - Botones rápidos de estado en la lista de acciones (pendiente, completado, cancelado): un clic, cambio inmediato y vuelta atrás si el servidor lo rechaza. Los estados se toman de los activos en Administración, sin atarse a un nombre. Solo para asistentes.
 - Fecha de la reunión sugerida desde el texto: al cargar un transcript o minuta, si el encabezado trae una fecha distinta, se ofrece «Usar esa fecha» (nada cambia sin confirmar). Nueva ruta PATCH /api/meetings/[id] solo para la asistente dueña, con auditoría.

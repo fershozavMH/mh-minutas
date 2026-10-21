@@ -1,6 +1,6 @@
 import type { Prisma } from "../../generated/prisma/client";
 import type { UpdateActionInput } from "../action-schemas";
-import { addDays, type ActionFilters, dayStart, todayInHermosillo } from "../action-filters";
+import { addDays, type ActionFilters, CLOSED_VISIBLE_DAYS, dayStart, todayInHermosillo } from "../action-filters";
 import { actionWhere, type Viewer } from "../access";
 import { getDb } from "../db";
 import { recordSensitiveReads } from "./audit";
@@ -17,6 +17,12 @@ function filterWhere(filters: ActionFilters): Prisma.ActionWhereInput {
   if (filters.due === "overdue") conditions.push({ dueDate: { lt: today }, status: { isClosed: false } });
   if (filters.due === "week") {
     conditions.push({ dueDate: { gte: today, lt: dayStart(addDays(todayInHermosillo(), 7)) } });
+  }
+  // Lo cerrado se archiva de la vista: sigue en el sistema, pero no sale pasados unos días
+  // (la fecha es la del último cambio) salvo que se pida verlo o se filtre por un estado.
+  if (!filters.showClosed && !filters.statusId) {
+    const since = new Date(Date.now() - CLOSED_VISIBLE_DAYS * 24 * 60 * 60 * 1000);
+    conditions.push({ OR: [{ status: { isClosed: false } }, { updatedAt: { gte: since } }] });
   }
   return { AND: conditions };
 }

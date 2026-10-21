@@ -6,7 +6,11 @@ export type ActionFilters = {
   owner?: string;
   meetingId?: string;
   due?: DueFilter;
+  // Por defecto las cerradas hace más de 7 días no salen; con esto salen todas.
+  showClosed?: true;
 };
+
+export const CLOSED_VISIBLE_DAYS = 7;
 
 type Params = Record<string, string | string[] | undefined>;
 
@@ -18,11 +22,13 @@ export function parseActionFilters(params: Params): ActionFilters {
   const owner = first(params.owner);
   const meetingId = first(params.meeting);
   const due = first(params.due);
+  const closed = first(params.closed);
   return {
     ...(statusId ? { statusId } : {}),
     ...(owner ? { owner: owner.slice(0, 120) } : {}),
     ...(meetingId ? { meetingId } : {}),
     ...(due && (dueFilters as readonly string[]).includes(due) ? { due: due as DueFilter } : {}),
+    ...(closed === "1" ? { showClosed: true as const } : {}),
   };
 }
 

@@ -48,6 +48,7 @@ async function Actions({
           due: filters.due ?? "",
           meeting: filters.meetingId ?? "",
           owner: filters.owner ?? "",
+          closed: filters.showClosed ? "1" : "",
         }}
       >
         {actions.length === 0 ? (
@@ -93,7 +94,9 @@ async function Actions({
                     ) : (
                       <>
                         {a.status.name}
-                        {a.statusNote ? <span className="hint-inline">{a.statusNote}</span> : null}
+                        {a.statusNote ? (
+                          <span className="hint-inline">{a.statusNote}</span>
+                        ) : null}
                       </>
                     )}
                   </td>

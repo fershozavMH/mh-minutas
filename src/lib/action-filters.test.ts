@@ -33,3 +33,10 @@ describe("fechas", () => {
     expect(addDays("2026-12-28", 7)).toBe("2027-01-04");
   });
 });
+
+describe("cerradas", () => {
+  it("closed=1 pide ver todas; otro valor se ignora", () => {
+    expect(parseActionFilters({ closed: "1" })).toEqual({ showClosed: true });
+    expect(parseActionFilters({ closed: "0" })).toEqual({});
+  });
+});

@@ -4,7 +4,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 type Option = { id: string; name: string };
-type Values = { status: string; due: string; meeting: string; owner: string };
+type Values = {
+  status: string;
+  due: string;
+  meeting: string;
+  owner: string;
+  closed: string;
+};
+
+const keyOf = (v: Values) =>
+  JSON.stringify([v.status, v.due, v.meeting, v.owner.trim(), v.closed]);
 
 // Filtros que se aplican al cambiar, sin recargar la página: se actualiza la dirección
 // y el servidor solo vuelve a dibujar la lista. Lo anterior sigue visible, atenuado, mientras llega.
@@ -25,6 +34,19 @@ export function FiltersForm({
   const [pending, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Si la dirección cambia por fuera (por ejemplo, un enlace a /acciones), los campos la siguen.
+  // Lo que la propia pantalla acaba de pedir no cuenta como cambio externo, para no pisar lo que se escribe.
+  const initialKey = keyOf(initial);
+  const [seenKey, setSeenKey] = useState(initialKey);
+  const [pushedKey, setPushedKey] = useState(initialKey);
+  if (initialKey !== seenKey) {
+    setSeenKey(initialKey);
+    if (initialKey !== pushedKey) {
+      setValues(initial);
+      setPushedKey(initialKey);
+    }
+  }
+
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
@@ -33,6 +55,7 @@ export function FiltersForm({
   );
 
   function apply(next: Values) {
+    setPushedKey(keyOf(next));
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(next))
       if (value.trim()) params.set(key, value.trim());
@@ -111,12 +134,26 @@ export function FiltersForm({
             onChange={(e) => change("owner", e.target.value, 400)}
           />
         </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={values.closed === "1"}
+            onChange={(e) => change("closed", e.target.checked ? "1" : "")}
+          />{" "}
+          Ver cerradas
+        </label>
         {filtered && (
           <button
             type="button"
             className="link-button"
             onClick={() => {
-              const empty = { status: "", due: "", meeting: "", owner: "" };
+              const empty = {
+                status: "",
+                due: "",
+                meeting: "",
+                owner: "",
+                closed: "",
+              };
               setValues(empty);
               apply(empty);
             }}
