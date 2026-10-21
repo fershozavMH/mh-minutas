@@ -231,7 +231,7 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
                 {similarBy[row.id] && (
                   <div className="duplicate-box" role="alert">
                     <p>
-                      Parece repetir una acción que ya existe. Las cerradas se quedan cerradas: el aviso se suma como
+                      Parece repetir una acción que ya existe. Las cerradas se quedan cerradas: la mención se suma como
                       avance.
                     </p>
                     <ul>
