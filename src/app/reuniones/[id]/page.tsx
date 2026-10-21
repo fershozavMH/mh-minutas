@@ -109,6 +109,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
               return (
                 <li key={item.id}>
                   {item.status === "APPROVED" ? "Aprobada" : "Rechazada"} · {label}
+                  {item.status === "APPROVED" && item.kind === "ACTION" && !item.actionId ? " — sumada como avance de una acción existente" : ""}
                   {item.status === "REJECTED" && item.rejectionReason ? ` — Motivo: ${item.rejectionReason}` : ""}
                 </li>
               );
