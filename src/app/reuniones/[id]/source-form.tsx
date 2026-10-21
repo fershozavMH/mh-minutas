@@ -73,7 +73,7 @@ export function SourceForm({ meetingId }: { meetingId: string }) {
           />
         </label>
       </p>
-      <button type="submit" disabled={busy || text.trim() === ""}>
+      <button type="submit" disabled={busy || text.trim() === ""} aria-busy={busy}>
         Guardar transcript
       </button>
       {message && <p role="status">{message}</p>}

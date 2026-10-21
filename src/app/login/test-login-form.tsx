@@ -8,15 +8,19 @@ import { authClient } from "@/lib/auth-client";
 export function TestLoginForm() {
   const router = useRouter();
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
+    setBusy(true);
     const form = new FormData(event.currentTarget);
     const { error } = await authClient.signIn.email({
       email: String(form.get("email")),
       password: String(form.get("password")),
     });
     if (error) {
+      setBusy(false);
       setMessage("Correo o contraseña incorrectos.");
       return;
     }
@@ -37,7 +41,9 @@ export function TestLoginForm() {
           Contraseña <input name="password" type="password" required autoComplete="current-password" />
         </label>
       </div>
-      <button type="submit">Entrar</button>
+      <button type="submit" disabled={busy} aria-busy={busy}>
+        {busy ? "Entrando…" : "Entrar"}
+      </button>
       {message && <p role="status">{message}</p>}
     </form>
   );

@@ -134,7 +134,7 @@ export function PeopleManager({ rows, canManage }: { rows: Row[]; canManage: boo
               Correo (opcional) <input name="email" type="email" />
             </label>
           </div>
-          <button type="submit" disabled={busy}>
+          <button type="submit" disabled={busy} aria-busy={busy}>
             Agregar
           </button>
           {message && <p role="status">{message}</p>}

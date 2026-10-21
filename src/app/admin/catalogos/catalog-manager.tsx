@@ -18,10 +18,17 @@ async function send(url: string, method: "POST" | "PATCH", body: unknown) {
 
 export function CatalogManager({ levels, statuses }: { levels: Level[]; statuses: Status[] }) {
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function run(promise: Promise<string | null>) {
+    if (busy) return;
+    setBusy(true);
+    setMessage("");
     const error = await promise;
-    if (error) setMessage(`No se pudo: ${error}`);
+    if (error) {
+      setBusy(false);
+      setMessage(`No se pudo: ${error}`);
+    }
     else window.location.reload();
   }
 
@@ -75,6 +82,7 @@ export function CatalogManager({ levels, statuses }: { levels: Level[]; statuses
                 <button
                   type="button"
                   className="link-button"
+                  disabled={busy}
                   onClick={() => void run(send("/api/admin/levels", "PATCH", { id: l.id, active: !l.active }))}
                 >
                   {l.active ? "Desactivar" : "Activar"}
@@ -100,7 +108,9 @@ export function CatalogManager({ levels, statuses }: { levels: Level[]; statuses
             <input name="isSensitive" type="checkbox" /> Sensible (nunca llega a la IA)
           </label>
         </div>
-        <button type="submit">Agregar nivel</button>
+        <button type="submit" disabled={busy} aria-busy={busy}>
+          {busy ? "Guardando…" : "Agregar nivel"}
+        </button>
       </form>
 
       <h2>Estados de acción</h2>
@@ -125,6 +135,7 @@ export function CatalogManager({ levels, statuses }: { levels: Level[]; statuses
                 <button
                   type="button"
                   className="link-button"
+                  disabled={busy}
                   onClick={() => void run(send("/api/admin/statuses", "PATCH", { id: s.id, active: !s.active }))}
                 >
                   {s.active ? "Desactivar" : "Activar"}
@@ -150,7 +161,9 @@ export function CatalogManager({ levels, statuses }: { levels: Level[]; statuses
             <input name="isClosed" type="checkbox" /> Cierra la acción
           </label>
         </div>
-        <button type="submit">Agregar estado</button>
+        <button type="submit" disabled={busy} aria-busy={busy}>
+          {busy ? "Guardando…" : "Agregar estado"}
+        </button>
       </form>
     </>
   );

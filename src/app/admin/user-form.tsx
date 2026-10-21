@@ -8,9 +8,12 @@ type Option = { id: string; name: string };
 export function UserForm({ levels, directors }: { levels: Option[]; directors: Option[] }) {
   const [profile, setProfile] = useState("ASSISTANT");
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
+    setBusy(true);
     const form = new FormData(event.currentTarget);
     const bossId = String(form.get("bossId") ?? "");
     const response = await fetch("/api/admin/users", {
@@ -28,6 +31,7 @@ export function UserForm({ levels, directors }: { levels: Option[]; directors: O
       setMessage("Usuario dado de alta.");
       window.location.reload();
     } else {
+      setBusy(false);
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       setMessage(`No se pudo: ${data.error ?? response.status}`);
     }
@@ -85,7 +89,9 @@ export function UserForm({ levels, directors }: { levels: Option[]; directors: O
         <HelpTip topic="boss" label="Directivo" />
         </div>
       )}
-      <button type="submit">Dar de alta</button>
+      <button type="submit" disabled={busy} aria-busy={busy}>
+        {busy ? "Guardando…" : "Dar de alta"}
+      </button>
       {message && <p>{message}</p>}
     </form>
   );

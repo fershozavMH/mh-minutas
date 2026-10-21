@@ -198,7 +198,7 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
               <label>
                 Motivo (para las {chosen.length}) <input value={reason} onChange={(e) => setReason(e.target.value)} />
               </label>
-              <button type="button" disabled={busy || reason.trim() === ""} onClick={rejectSelected}>
+              <button type="button" disabled={busy || reason.trim() === ""} aria-busy={busy} onClick={rejectSelected}>
                 Confirmar rechazo
               </button>
               <button type="button" disabled={busy} onClick={() => setRejecting(false)}>
@@ -207,7 +207,7 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
             </>
           ) : (
             <>
-              <button type="button" disabled={busy} onClick={approveSelected}>
+              <button type="button" disabled={busy} aria-busy={busy} onClick={approveSelected}>
                 Aprobar seleccionadas ({chosen.length})
               </button>
               <button type="button" disabled={busy} onClick={() => setRejecting(true)}>

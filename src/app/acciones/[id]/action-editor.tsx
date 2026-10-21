@@ -124,7 +124,7 @@ export function ActionEditor(props: Props) {
         </label>
       </div>
       <p>
-        <button type="button" disabled={busy} onClick={save}>
+        <button type="button" disabled={busy} aria-busy={busy} onClick={save}>
           Guardar cambios
         </button>{" "}
         <button type="button" disabled={busy} onClick={() => setMode(mode === "replace" ? null : "replace")}>

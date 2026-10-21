@@ -75,7 +75,7 @@ export function MeetingForm({ levels }: { levels: Level[] }) {
         <HelpTip topic="meetingLevel" label="Nivel de la reunión" />
       </div>
       {selected?.isSensitive && <p className="hint">Nivel sensible: esta reunión nunca se envía a la IA.</p>}
-      <button type="submit" disabled={busy}>
+      <button type="submit" disabled={busy} aria-busy={busy}>
         Crear reunión
       </button>
       {message && <p role="status">{message}</p>}

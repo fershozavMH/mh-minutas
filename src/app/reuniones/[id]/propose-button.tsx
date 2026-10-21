@@ -36,9 +36,10 @@ export function ProposeButton({ meetingId, sourceId }: { meetingId: string; sour
 
   return (
     <>
-      <button type="button" onClick={ask} disabled={busy}>
+      <button type="button" onClick={ask} disabled={busy} aria-busy={busy}>
         {busy ? "Pidiendo propuesta…" : "Pedir propuesta a la IA"}
       </button>
+      {busy && <span role="status"> La IA puede tardar hasta un minuto; no cierres esta página.</span>}
       {message && <span role="status"> {message}</span>}
     </>
   );
