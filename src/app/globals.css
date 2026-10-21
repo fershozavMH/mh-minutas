@@ -326,3 +326,9 @@ button[aria-busy="true"]::after {
     animation: none;
   }
 }
+
+/* Lista que se está actualizando: se ve la anterior, atenuada, hasta que llega la nueva. */
+.is-pending {
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}

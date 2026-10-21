@@ -2,6 +2,7 @@
 
 ## Sin liberar
 
+- Filtros de /acciones sin recargar la página: se aplican al cambiar (el responsable con una pausa de 400 ms), la lista se atenúa mientras se actualiza y el botón «atrás» los respeta.
 - Carga visible en Personas y demás formularios: el indicador dura al menos 400 ms y se mantiene hasta que llegan los datos nuevos (hook `useBusy`).
 - Documentación: README con variables y pantallas, guía para las asistentes y decisiones de arquitectura (ADR-001 a ADR-009).
 - Indicadores de carga: botones que trabajan se atenúan, muestran un giro y no aceptan clics repetidos (alta de usuarios, niveles y estados, entrada y salida de sesión); aviso de espera en la propuesta de la IA.

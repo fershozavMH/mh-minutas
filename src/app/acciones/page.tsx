@@ -8,10 +8,18 @@ import { listMeetings } from "@/lib/data/meetings";
 import { listActiveStatuses } from "@/lib/data/statuses";
 import { HelpTip } from "../help-tip";
 import { SignOutButton } from "../sign-out-button";
+import { FiltersForm } from "./filters-form";
 
-const dateFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeZone: "UTC" });
+const dateFormat = new Intl.DateTimeFormat("es-MX", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
 
-async function Actions({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+async function Actions({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.profile === "ADMIN") redirect("/");
@@ -27,92 +35,69 @@ async function Actions({ searchParams }: { searchParams: Promise<Record<string, 
 
   return (
     <>
-      <form method="get" className="filters">
-        <label>
-          Estado
-          <select name="status" defaultValue={filters.statusId ?? ""}>
-            <option value="">Todos</option>
-            {statuses.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Compromiso
-          <select name="due" defaultValue={filters.due ?? ""}>
-            <option value="">Cualquiera</option>
-            <option value="overdue">Vencidas</option>
-            <option value="week">Próximos 7 días</option>
-            <option value="none">Sin fecha</option>
-          </select>
-        </label>
-        <label>
-          Reunión
-          <select name="meeting" defaultValue={filters.meetingId ?? ""}>
-            <option value="">Todas</option>
-            {meetings.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Responsable <input name="owner" defaultValue={filters.owner ?? ""} />
-        </label>
-        <button type="submit">Filtrar</button>
-        {filtered && <Link href="/acciones">Quitar filtros</Link>}
-      </form>
-      {actions.length === 0 ? (
-        <p className="hint">
-          {filtered
-            ? "Ninguna acción coincide con esos filtros."
-            : user.profile === "ASSISTANT"
-              ? "Siguiente paso: aprueba las propuestas de una reunión; cada acción aprobada aparece aquí."
-              : "Aún no hay acciones de tus asistentes."}
-        </p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">
-                Compromiso <HelpTip topic="actions" label="Acciones oficiales" />
-              </th>
-              <th scope="col">Acción</th>
-              <th scope="col">Responsable</th>
-              <th scope="col">Estado</th>
-              <th scope="col">Reunión</th>
-            </tr>
-          </thead>
-          <tbody>
-            {actions.map((a) => (
-              <tr key={a.id}>
-                <td>{a.dueDate ? dateFormat.format(a.dueDate) : "Sin fecha"}</td>
-                <td>
-                  <Link href={`/acciones/${a.id}`}>{a.title}</Link>
-                </td>
-                <td>{a.ownerName ?? "Sin responsable"}</td>
-                <td>{a.status.name}</td>
-                <td>{a.meeting?.title ?? ""}</td>
+      <FiltersForm
+        statuses={statuses.map((x) => ({ id: x.id, name: x.name }))}
+        meetings={meetings.map((m) => ({ id: m.id, name: m.title }))}
+        initial={{
+          status: filters.statusId ?? "",
+          due: filters.due ?? "",
+          meeting: filters.meetingId ?? "",
+          owner: filters.owner ?? "",
+        }}
+      >
+        {actions.length === 0 ? (
+          <p className="hint">
+            {filtered
+              ? "Ninguna acción coincide con esos filtros."
+              : user.profile === "ASSISTANT"
+                ? "Siguiente paso: aprueba las propuestas de una reunión; cada acción aprobada aparece aquí."
+                : "Aún no hay acciones de tus asistentes."}
+          </p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">
+                  Compromiso{" "}
+                  <HelpTip topic="actions" label="Acciones oficiales" />
+                </th>
+                <th scope="col">Acción</th>
+                <th scope="col">Responsable</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Reunión</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {retired.length > 0 && (
-        <>
-          <h2>Retiradas o reemplazadas</h2>
-          <ul>
-            {retired.map((a) => (
-              <li key={a.id}>
-                <Link href={`/acciones/${a.id}`}>{a.title}</Link> · {a.retiredReason}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+            </thead>
+            <tbody>
+              {actions.map((a) => (
+                <tr key={a.id}>
+                  <td>
+                    {a.dueDate ? dateFormat.format(a.dueDate) : "Sin fecha"}
+                  </td>
+                  <td>
+                    <Link href={`/acciones/${a.id}`}>{a.title}</Link>
+                  </td>
+                  <td>{a.ownerName ?? "Sin responsable"}</td>
+                  <td>{a.status.name}</td>
+                  <td>{a.meeting?.title ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {retired.length > 0 && (
+          <>
+            <h2>Retiradas o reemplazadas</h2>
+            <ul>
+              {retired.map((a) => (
+                <li key={a.id}>
+                  <Link href={`/acciones/${a.id}`}>{a.title}</Link> ·{" "}
+                  {a.retiredReason}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </FiltersForm>
     </>
   );
 }
@@ -126,7 +111,8 @@ export default function ActionsPage({
     <main>
       <h1>Acciones</h1>
       <p>
-        <Link href="/">Inicio</Link> <Link href="/reuniones">Reuniones</Link> <Link href="/personas">Personas</Link> <SignOutButton />
+        <Link href="/">Inicio</Link> <Link href="/reuniones">Reuniones</Link>{" "}
+        <Link href="/personas">Personas</Link> <SignOutButton />
       </p>
       <Suspense fallback={<p>Cargando…</p>}>
         <Actions searchParams={searchParams} />
