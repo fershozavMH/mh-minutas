@@ -50,3 +50,7 @@ Recordatorios por correo, envío de la minuta por Gmail, la pantalla de inicio c
 - Al aprobar una propuesta que se parece a una acción que ya existe, el sistema te avisa y no crea otra. Elige **Sumar como avance de esta** (la acción existente queda igual, incluso si estaba cerrada) o **Es distinta: crear acción nueva**.
 - En cada acción puedes poner **tipo** (quién entrega y qué papel tienes), **prioridad**, si **se repite**, desde cuándo **aparece** en la vista y si hay que **agendarla**. Los avances se escriben con fecha de hoy y quedan en la acción.
 - En la lista, los filtros **Tipo**, **Solo urgentes** y **Solo lo que ya toca** ayudan a ver lo del día.
+
+## Cargar notas desde Word o PDF
+- En «Cargar transcript» puedes elegir un archivo `.docx` o `.pdf` (por ejemplo, las notas de Gemini). El texto aparece en la caja para que lo revises antes de guardarlo. Un PDF escaneado como imagen no se puede leer; en ese caso pega el texto.
+- Si varias acciones propuestas no traen fecha, usa «Aplicar» arriba de la lista para ponerles la misma fecha de una vez; después puedes ajustar cada una.

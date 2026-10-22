@@ -14,6 +14,15 @@ const errors: Record<string, string> = {
   sin_sesion: "Tu sesión terminó; vuelve a entrar.",
 };
 
+const extractErrors: Record<string, string> = {
+  tipo_no_admitido: "Ese archivo no es un .docx ni un .pdf válido.",
+  archivo_grande: "El archivo es demasiado grande (máximo 4 MB y 300 páginas).",
+  archivo_danado: "No se pudo abrir el archivo; puede estar dañado.",
+  sin_texto: "El archivo no trae texto (un PDF escaneado como imagen no se puede leer).",
+  sin_permiso: "Tu perfil no puede cargar transcripts.",
+  sin_sesion: "Tu sesión terminó; vuelve a entrar.",
+};
+
 const dayFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeZone: "UTC" });
 const formatDay = (iso: string) => dayFormat.format(new Date(`${iso}T12:00:00.000Z`));
 
@@ -44,8 +53,29 @@ export function SourceForm({ meetingId, heldAt }: { meetingId: string; heldAt: s
   }
 
   async function onFile(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const input = event.target;
+    const file = input.files?.[0];
     if (!file) return;
+    setMessage("");
+    // Word y PDF se leen en el servidor; el texto vuelve aquí para revisarlo antes de guardarlo.
+    if (/\.(docx|pdf)$/i.test(file.name)) {
+      setBusy(true);
+      const body = new FormData();
+      body.set("file", file);
+      const response = await fetch("/api/extract-text", { method: "POST", body }).catch(() => null);
+      setBusy(false);
+      if (!response?.ok) {
+        const data = (await response?.json().catch(() => ({}))) as { error?: string } | undefined;
+        setMessage(extractErrors[data?.error ?? ""] ?? "No se pudo leer el archivo.");
+        input.value = "";
+        return;
+      }
+      const data = (await response.json()) as { text: string };
+      setText(data.text);
+      setOrigin(`Archivo: ${file.name}`);
+      setMessage("Texto leído del archivo: revísalo antes de guardarlo.");
+      return;
+    }
     setText(await file.text());
     setOrigin(`Archivo: ${file.name}`);
   }
@@ -79,8 +109,8 @@ export function SourceForm({ meetingId, heldAt }: { meetingId: string; heldAt: s
       </h2>
       <div className="field">
         <label>
-          Archivo de texto
-          <input type="file" accept=".txt,.md,.vtt,.srt,text/plain" onChange={onFile} />
+          Archivo (.txt, .md, .vtt, .srt, .docx o .pdf)
+          <input type="file" accept=".txt,.md,.vtt,.srt,.docx,.pdf,text/plain" disabled={busy} onChange={onFile} />
         </label>
       </div>
       <p>

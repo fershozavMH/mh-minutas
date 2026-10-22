@@ -86,6 +86,21 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
     return next;
   };
 
+  // Fecha común para las acciones que aún no tienen una; nunca cambia una fecha ya puesta.
+  const [bulkDate, setBulkDate] = useState("");
+  const undated = rows.filter((row) => row.kind === "ACTION" && current(row).dueDate === "");
+  const applyBulkDate = () => {
+    if (!bulkDate) return;
+    setValues((all) => {
+      const next = { ...all };
+      for (const row of undated) next[row.id] = { ...(all[row.id] ?? row), dueDate: bulkDate };
+      return next;
+    });
+    setMessage(
+      `Fecha puesta a ${undated.length} ${undated.length === 1 ? "acción" : "acciones"}. Puedes cambiar cada una antes de aprobar.`,
+    );
+  };
+
   const selectable = rows.filter((row) => !blocked(row));
   const chosen = rows.filter((row) => selected.has(row.id) && !blocked(row));
   const allChosen = selectable.length > 0 && selectable.every((row) => selected.has(row.id));
@@ -149,6 +164,20 @@ export function ReviewList({ rows, people }: { rows: ReviewRow[]; people: Person
 
   return (
     <div>
+      {undated.length > 0 && (
+        <p className="hint">
+          <label>
+            {undated.length === 1
+              ? "1 acción no tiene fecha de compromiso."
+              : `${undated.length} acciones no tienen fecha de compromiso.`}{" "}
+            Fecha para {undated.length === 1 ? "esa" : "todas"}:{" "}
+            <input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} />
+          </label>{" "}
+          <button type="button" disabled={busy || bulkDate === ""} onClick={applyBulkDate}>
+            Aplicar
+          </button>
+        </p>
+      )}
       <p>
         <label>
           <input
