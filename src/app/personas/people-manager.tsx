@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { useBusy } from "../use-busy";
 
-type Row = { id: string; name: string; email: string; active: boolean };
+type Row = { id: string; name: string; email: string; aliases: string; active: boolean };
+
+// «Administración MH, Admin» → ["Administración MH", "Admin"]
+const toList = (text: string) =>
+  text
+    .split(",")
+    .map((alias) => alias.trim())
+    .filter(Boolean);
 
 const errors: Record<string, string> = {
   correo_repetido: "Ya hay una persona con ese correo.",
@@ -28,6 +35,7 @@ async function call(url: string, method: string, body: unknown): Promise<string 
 function PersonRow({ row, canManage }: { row: Row; canManage: boolean }) {
   const [name, setName] = useState(row.name);
   const [email, setEmail] = useState(row.email);
+  const [aliases, setAliases] = useState(row.aliases);
   const [message, setMessage] = useState("");
   const { busy, setBusy, refresh } = useBusy();
 
@@ -45,6 +53,7 @@ function PersonRow({ row, canManage }: { row: Row; canManage: boolean }) {
       <tr>
         <td>{row.name}</td>
         <td>{row.email}</td>
+        <td>{row.aliases}</td>
         <td>{row.active ? "Activa" : "Inactiva"}</td>
         <td />
       </tr>
@@ -65,9 +74,17 @@ function PersonRow({ row, canManage }: { row: Row; canManage: boolean }) {
           onChange={(e) => setEmail(e.target.value)}
         />
       </td>
+      <td>
+        <input
+          aria-label={`Otros nombres de ${row.name}`}
+          value={aliases}
+          placeholder="Separados por coma"
+          onChange={(e) => setAliases(e.target.value)}
+        />
+      </td>
       <td>{row.active ? "Activa" : "Inactiva"}</td>
       <td>
-        <button type="button" disabled={busy} aria-busy={busy} onClick={() => save({ name, email })}>
+        <button type="button" disabled={busy} aria-busy={busy} onClick={() => save({ name, email, aliases: toList(aliases) })}>
           {busy ? "Guardando…" : "Guardar"}
         </button>{" "}
         <button type="button" disabled={busy} onClick={() => save({ active: !row.active })}>
@@ -89,7 +106,7 @@ export function PeopleManager({ rows, canManage }: { rows: Row[]; canManage: boo
     const form = new FormData(formElement);
     setBusy(true);
     setMessage("");
-    const problem = await call("/api/people", "POST", { name: form.get("name"), email: form.get("email") });
+    const problem = await call("/api/people", "POST", { name: form.get("name"), email: form.get("email"), aliases: toList(String(form.get("aliases") ?? "")) });
     setBusy(false);
     if (problem) {
       setMessage(problem);
@@ -108,6 +125,7 @@ export function PeopleManager({ rows, canManage }: { rows: Row[]; canManage: boo
             <tr>
               <th scope="col">Nombre</th>
               <th scope="col">Correo</th>
+              <th scope="col">Otros nombres</th>
               <th scope="col">Estado</th>
               <th />
             </tr>
@@ -130,6 +148,11 @@ export function PeopleManager({ rows, canManage }: { rows: Row[]; canManage: boo
           <div className="field">
             <label>
               Correo (opcional) <input name="email" type="email" />
+            </label>
+          </div>
+          <div className="field">
+            <label>
+              Otros nombres (opcional, separados por coma) <input name="aliases" placeholder="Administración MH" />
             </label>
           </div>
           <button type="submit" disabled={busy} aria-busy={busy}>

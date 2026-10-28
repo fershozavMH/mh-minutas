@@ -6,7 +6,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "sin_sesion" }, { status: 401 });
   const people = await listPeople();
-  return Response.json({ people: people.map((p) => ({ id: p.id, name: p.name, email: p.email })) });
+  return Response.json({ people: people.map((p) => ({ id: p.id, name: p.name, email: p.email, aliases: p.aliases })) });
 }
 
 export async function POST(request: Request) {

@@ -25,11 +25,11 @@ Pendiente, En progreso, En revisión, En espera, Completado y Cancelado. **En es
 
 ## Si el texto parece sensible
 
-Si al pedir la propuesta aparece el aviso de temas sensibles (contrataciones, bajas, créditos, sueldos, bonos y comisiones, conflictos internos), puedes marcar la reunión como sensible (no se envía a la IA y un nivel solo sube, no baja) o confirmar que no lo es y enviarla.
+Si al pedir la propuesta aparece el aviso de temas sensibles (contrataciones de personal, bajas, créditos a colaboradores, sueldos, bonos y comisiones, negociaciones con proveedores, conflictos internos), puedes marcar la reunión como sensible (no se envía a la IA y un nivel solo sube, no baja) o confirmar que no lo es y enviarla.
 
 ## Registro de personas
 
-En *Personas* están quienes pueden ser responsables, tengan o no inicio de sesión. El correo es opcional, pero sin él la persona no recibirá recordatorios cuando existan. Una persona no se borra: se desactiva.
+En *Personas* están quienes pueden ser responsables, tengan o no inicio de sesión. El correo es opcional, pero sin él la persona no recibirá recordatorios cuando existan. Una persona no se borra: se desactiva. En «Otros nombres» puedes anotar cómo la mencionan en las juntas (por ejemplo «Administración MH»), separados por coma; así la app la sugiere como responsable. Un mismo nombre no debe estar en dos personas.
 
 ## Cuando algo no sale
 

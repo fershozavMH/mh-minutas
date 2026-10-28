@@ -24,7 +24,7 @@ export async function createPerson(viewer: Viewer, input: CreatePersonInput): Pr
   if (!canManage(viewer)) return { ok: false, error: "sin_permiso" };
   const db = getDb();
   try {
-    const person = await db.person.create({ data: { name: input.name, email: input.email } });
+    const person = await db.person.create({ data: { name: input.name, email: input.email, aliases: input.aliases ?? [] } });
     await db.auditLog.create({ data: { userId: viewer.id, kind: "CHANGE", entity: "Person", entityId: person.id } });
     return { ok: true, id: person.id };
   } catch (error) {
@@ -40,9 +40,10 @@ export async function updatePerson(viewer: Viewer, id: string, input: UpdatePers
   const current = await db.person.findUnique({ where: { id } });
   if (!current) return { ok: false, error: "no_existe" };
 
-  const data: { name?: string; email?: string | null; active?: boolean } = {};
+  const data: { name?: string; email?: string | null; aliases?: string[]; active?: boolean } = {};
   if (input.name !== undefined && input.name !== current.name) data.name = input.name;
   if (input.email !== undefined && input.email !== current.email) data.email = input.email;
+  if (input.aliases !== undefined && input.aliases.join("\n") !== current.aliases.join("\n")) data.aliases = input.aliases;
   if (input.active !== undefined && input.active !== current.active) data.active = input.active;
   if (Object.keys(data).length === 0) return { ok: false, error: "sin_cambios" };
 

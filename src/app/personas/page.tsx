@@ -24,7 +24,7 @@ async function People() {
         </p>
       )}
       <PeopleManager
-        rows={people.map((p) => ({ id: p.id, name: p.name, email: p.email ?? "", active: p.active }))}
+        rows={people.map((p) => ({ id: p.id, name: p.name, email: p.email ?? "", aliases: p.aliases.join(", "), active: p.active }))}
         canManage={canManage}
       />
     </>

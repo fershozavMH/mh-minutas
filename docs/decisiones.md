@@ -43,7 +43,8 @@ Formato: contexto, decisión y consecuencia. Una decisión nueva se agrega al fi
 ## ADR-010 Alerta de temas sensibles antes de la IA
 - **Contexto:** la reunión se marca con un nivel a mano; un texto sensible podría cargarse en una reunión que no lo es. La dirección dio una lista parcial de temas sensibles (21 oct 2026).
 - **Decisión:** antes de enviar un texto a la IA, el servidor busca esos temas (`src/lib/sensitive-topics.ts`). Si aparecen y la reunión no es sensible, no se envía sin confirmación; la persona puede subir el nivel de la reunión (solo hacia arriba) o confirmar el envío, y la confirmación queda en la auditoría.
-- **Consecuencia:** es una alerta con posibles falsos positivos, no una garantía; el nivel de la reunión sigue siendo la regla. La lista se edita en el archivo; «Créditos» está por aclarar.
+- **Actualización (28 oct 2026):** con tres reuniones reales la lista tenía muchos falsos positivos (contratar proveedores, créditos de clientes). Contrataciones y Créditos se acotan a personal; se confirma que las reglas de comisiones y las negociaciones con proveedores son privadas (tema nuevo). La lista completa sigue sin confirmar.
+- **Consecuencia:** es una alerta con posibles falsos positivos, no una garantía; el nivel de la reunión sigue siendo la regla. La lista se edita en el archivo.
 
 ## ADR-011 Estados que piden nota y archivo de lo cerrado
 - **Decisión:** cada estado puede pedir una nota (`requiresNote`): En espera (qué se espera) y Cancelado (por qué). Sin nota no se fija el estado; la nota se limpia al salir y queda en el historial. Lo cerrado hace más de 7 días (por su último cambio) no sale en la lista salvo con «Ver cerradas».
@@ -57,3 +58,8 @@ Formato: contexto, decisión y consecuencia. Una decisión nueva se agrega al fi
 - **Contexto:** las notas de Gemini llegan como documento de Word (y a veces PDF); pegarlas a mano era un paso de más.
 - **Decisión:** un endpoint solo para asistentes extrae el texto y no guarda nada; la persona lo revisa y lo carga como cualquier texto. El `.docx` se lee con `fflate` (se abre el XML interno, con tope de tamaño descomprimido contra archivos-bomba) y el `.pdf` con `unpdf` (sin ejecutar nada del archivo). Se evitó `mammoth` porque arrastraba una alerta de `npm audit`. El tipo se decide por la firma del archivo, no por el nombre.
 - **Consecuencia:** el tope es 4 MB por el límite de Vercel; un PDF escaneado no se lee (sin OCR). Los archivos se procesan en memoria y no se almacenan.
+
+## ADR-014 Alias de personas y limpieza de texto
+- **Contexto:** en las reuniones se menciona a la gente por otros nombres («Administración MH» era Athziri Rubio) y cada herramienta de transcripción agrega pies y enlaces que no son de la reunión.
+- **Decisión:** `Person.aliases` (lista de texto); `matchPerson` los trata como nombre completo, pero solo sugiere si el alias es de una única persona. `normalizeTranscript` quita las líneas de ruido conocidas (lista en `transcript.ts`); la huella se calcula sobre el texto limpio. La fecha sin año solo se busca en los primeros 200 caracteres y siempre es una sugerencia.
+- **Consecuencia:** un transcript ya guardado antes de este cambio tiene otra huella que el mismo archivo cargado ahora, así que no se detectará como repetido. Si una herramienta cambia su pie, hay que agregar la línea a la lista.

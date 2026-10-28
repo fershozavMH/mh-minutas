@@ -33,7 +33,7 @@ export function SourceForm({ meetingId, heldAt }: { meetingId: string; heldAt: s
   const [message, setMessage] = useState("");
   const { busy, setBusy, refresh } = useBusy();
   const [dismissed, setDismissed] = useState("");
-  const detected = useMemo(() => detectMeetingDate(text), [text]);
+  const detected = useMemo(() => detectMeetingDate(text, Number(heldAt.slice(0, 4))), [text, heldAt]);
   const suggestion = detected && detected !== heldAt && detected !== dismissed ? detected : null;
 
   async function applyDetectedDate(day: string) {

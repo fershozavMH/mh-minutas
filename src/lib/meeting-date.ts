@@ -3,6 +3,8 @@
 // Es una sugerencia: una persona decide si la usa.
 
 const HEAD_CHARS = 600;
+// Sin año solo se mira el título (más arriba aún), porque «22-oct» más abajo suele ser un compromiso.
+const TITLE_CHARS = 200;
 
 const months: Record<string, number> = {
   enero: 1, ene: 1, january: 1, jan: 1,
@@ -30,7 +32,8 @@ function valid({ year, month, day }: Omit<Candidate, "index">): string | null {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(iso) ? iso : null;
 }
 
-export function detectMeetingDate(text: string): string | null {
+// assumeYear: si el encabezado trae mes y día sin año («Semanal - October 15»), se supone ese año.
+export function detectMeetingDate(text: string, assumeYear?: number): string | null {
   const head = text.slice(0, HEAD_CHARS).toLowerCase();
   const found: Candidate[] = [];
 
@@ -51,6 +54,24 @@ export function detectMeetingDate(text: string): string | null {
     found.push({ index: m.index, year: +m[3], month: +m[2], day: +m[1] });
   }
 
+  found.sort((a, b) => a.index - b.index);
+  for (const candidate of found) {
+    const iso = valid(candidate);
+    if (iso) return iso;
+  }
+  return assumeYear ? detectWithoutYear(head.slice(0, TITLE_CHARS), assumeYear) : null;
+}
+
+function detectWithoutYear(title: string, year: number): string | null {
+  const found: Candidate[] = [];
+  // 15 de octubre · 15 oct
+  for (const m of title.matchAll(new RegExp(`\\b(\\d{1,2})\\s*(?:de\\s+)?(${monthNames})\\b(?!\\.?\\s*(?:de\\s+|-\\s*|,\\s*)?\\d{4})`, "g"))) {
+    found.push({ index: m.index, year, month: months[m[2]], day: +m[1] });
+  }
+  // October 15 · Oct 15th
+  for (const m of title.matchAll(new RegExp(`\\b(${monthNames})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?!,?\\s*\\d{4})`, "g"))) {
+    found.push({ index: m.index, year, month: months[m[1]], day: +m[2] });
+  }
   found.sort((a, b) => a.index - b.index);
   for (const candidate of found) {
     const iso = valid(candidate);

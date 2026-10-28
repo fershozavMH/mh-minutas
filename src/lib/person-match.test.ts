@@ -22,6 +22,17 @@ describe("matchPerson", () => {
     expect(matchPerson("JUSTIN PEREZ", people)).toBe("2");
   });
 
+  it("usa los alias, solo si son de una persona", () => {
+    const withAliases = [
+      { id: "1", name: "Athziri Rubio", aliases: ["Administración MH"] },
+      { id: "2", name: "Justin Pérez", aliases: ["Compras", "Admin"] },
+      { id: "3", name: "Justin López", aliases: ["Compras"] },
+    ];
+    expect(matchPerson("administracion mh", withAliases)).toBe("1");
+    expect(matchPerson("Compras", withAliases)).toBeNull();
+    expect(matchPerson("Admin", withAliases)).toBe("2");
+  });
+
   it("sin nombre o sin coincidencia devuelve null", () => {
     expect(matchPerson("", people)).toBeNull();
     expect(matchPerson(null, people)).toBeNull();

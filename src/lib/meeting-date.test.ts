@@ -22,6 +22,18 @@ describe("detectMeetingDate", () => {
     expect(detectMeetingDate("31 de febrero de 2026")).toBeNull();
     expect(detectMeetingDate("45/10/2026")).toBeNull();
   });
+  it("con año supuesto, lee mes y día del título", () => {
+    expect(detectMeetingDate("Proyectos Tec-Semanal 6 - October 15", 2026)).toBe("2026-10-15");
+    expect(detectMeetingDate("Semanal del 15 de octubre", 2026)).toBe("2026-10-15");
+    expect(detectMeetingDate("Semanal 15 oct", 2026)).toBe("2026-10-15");
+  });
+  it("sin año supuesto no adivina, y fuera del título tampoco", () => {
+    expect(detectMeetingDate("Proyectos Tec-Semanal 6 - October 15")).toBeNull();
+    expect(detectMeetingDate(`${"x ".repeat(150)} October 15`, 2026)).toBeNull();
+  });
+  it("una fecha completa gana sobre la supuesta", () => {
+    expect(detectMeetingDate("Semanal 15 oct - 20 de octubre de 2025", 2026)).toBe("2025-10-20");
+  });
   it("devuelve null si no hay fecha", () => {
     expect(detectMeetingDate("Sin fecha aquí")).toBeNull();
   });

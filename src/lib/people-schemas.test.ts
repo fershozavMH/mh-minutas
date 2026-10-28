@@ -3,7 +3,7 @@ import { createPersonSchema, updatePersonSchema } from "./people-schemas";
 
 describe("createPersonSchema", () => {
   it("acepta nombre sin correo y normaliza el correo", () => {
-    expect(createPersonSchema.parse({ name: " Daray " })).toEqual({ name: "Daray", email: null });
+    expect(createPersonSchema.parse({ name: " Daray " })).toEqual({ name: "Daray", email: null, aliases: [] });
     expect(createPersonSchema.parse({ name: "Ana", email: "ANA@Correo.com" }).email).toBe("ana@correo.com");
     expect(createPersonSchema.parse({ name: "Ana", email: "" }).email).toBeNull();
   });
@@ -19,5 +19,11 @@ describe("updatePersonSchema", () => {
     expect(updatePersonSchema.safeParse({}).success).toBe(false);
     expect(updatePersonSchema.parse({ email: "" }).email).toBeNull();
     expect(updatePersonSchema.parse({ active: false }).active).toBe(false);
+  });
+
+  it("limpia los alias: sin repetidos (ni por acentos) y máximo 10", () => {
+    const parsed = createPersonSchema.parse({ name: "Ana", aliases: [" Administración MH ", "administracion mh", "Admin"] });
+    expect(parsed.aliases).toEqual(["Administración MH", "Admin"]);
+    expect(createPersonSchema.safeParse({ name: "Ana", aliases: Array.from({ length: 11 }, (_, n) => `a${n}`) }).success).toBe(false);
   });
 });
