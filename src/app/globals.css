@@ -1,15 +1,439 @@
-:root {
+/* Corporate Indigo. Los valores del modo oscuro son estimados de la captura de diseño
+   y se confirman en el Plan. */
+:root,
+:root[data-theme="light"] {
   --brand: #25324a;
   --accent: #5665a8;
   --highlight: #a5b4fc;
   --bg: #f3f4f9;
   --card: #ffffff;
   --text: #25324a;
+  --muted: #5d6a85;
+  --border: #dfe2ee;
+  --on-accent: #ffffff;
+  --soft: #e6e9fb;
+  --link: #5665a8;
+}
+
+:root[data-theme="dark"] {
+  --brand: #a5b4fc;
+  --accent: #5665a8;
+  --highlight: #a5b4fc;
+  --bg: #161b2b;
+  --card: #212840;
+  --text: #f3f4f9;
+  --muted: #a9b1c9;
+  --border: #323a5a;
+  --on-accent: #ffffff;
+  --soft: #2c3454;
+  --link: #a5b4fc;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  color: var(--brand);
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+h1,
+h2 {
+  color: var(--brand);
+}
+
+a {
+  color: var(--link);
+}
+
+button {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.ghost {
+  background: var(--soft);
+  color: var(--text);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 2px;
+}
+
+input,
+select {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.card dt {
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.card dd {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.hint {
+  background: var(--soft);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.help {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--link);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.help-btn:hover {
+  background: var(--soft);
+}
+
+.help-btn:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 2px;
+}
+
+.help-note {
+  position: fixed;
+  z-index: 50;
+  box-sizing: border-box;
+  width: min(280px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.field label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+textarea {
+  width: 100%;
+  max-width: 720px;
+  min-height: 180px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+
+.review-list {
+  list-style: none;
+  padding: 0;
+}
+
+.review-item {
+  display: flex;
+  gap: 12px;
+  margin: 10px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.review-check {
+  padding-top: 2px;
+}
+
+.review-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-text {
+  margin: 6px 0;
+}
+
+.hint-inline {
+  color: var(--link);
+  font-size: 0.85rem;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.review-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 -4px 16px rgb(0 0 0 / 12%);
+}
+
+.field input:not([type="checkbox"]):not([type="date"]) {
+  min-width: min(420px, 60vw);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px 16px;
+  margin: 12px 0;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+/* Estado de carga: el botón se atenúa, no recibe clics y muestra un giro mientras trabaja. */
+button:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+button[aria-busy="true"]::after {
+  content: "";
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-left: 0.5em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -0.1em;
+  animation: busy-spin 0.8s linear infinite;
+}
+@keyframes busy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button[aria-busy="true"]::after {
+    animation: none;
+  }
+}
+
+/* Lista que se está actualizando: se ve la anterior, atenuada, hasta que llega la nueva. */
+.is-pending {
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+/* Aviso de actualización de los filtros: sin caja, y no ocupa espacio cuando está vacío. */
+.filters-status {
+  align-self: center;
+  opacity: 0.8;
+  font-size: 0.9em;
+}
+.filters-status:empty {
+  display: none;
+}
+
+/* Estado con botones rápidos en la lista de acciones. */
+.quick-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.quick-status-buttons {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.quick-status-buttons button {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+.quick-status-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  width: 100%;
+}
+.hint-inline {
+  display: block;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.quick-status-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  width: 100%;
+}
+.hint-inline {
+  display: block;
+  width: 100%;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.duplicate-box {
+  border: 1px solid var(--warn-border, #b7791f);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+.duplicate-box ul {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.1rem;
+}
+.duplicate-box li button {
+  margin-left: 0.5rem;
+}
+.badge-urgent {
+  color: var(--danger, #b42318);
+}
+.followups {
+  list-style: none;
+  padding: 0;
+}
+.followups li {
+  margin: 0.4rem 0;
+}
+
+/* Campo de avance: etiqueta arriba, cuadro de texto corto y botón debajo. */
+.field.stacked,
+.field.stacked label {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.field.stacked textarea {
+  min-height: 84px;
+  max-width: 560px;
+}
+
+/* Casillas de los filtros en una sola línea con su texto; listas desplegables sin estirarse de más. */
+.filters label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 10px;
+}
+.filters select {
+  max-width: 260px;
 }
